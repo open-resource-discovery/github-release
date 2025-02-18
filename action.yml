@@ -1,0 +1,48 @@
+name: "Release Creator and Changelog Updater"
+description: >
+  Extracts the latest version from package.json and updates changelog.md.
+  Creates a release using ncipollo/release-action with information from the changelog.
+  Prepares changelog.md for the next run by adding a new 'unreleased' section.
+  Dynamically lists Git commits since the last release and adds contributors.
+
+inputs:
+  github-token:
+    required: false
+    description: "GitHub Token for authentication."
+    default: ${{ github.token }}
+  release-draft:
+    description: "Mark release as draft."
+    required: false
+    default: false
+  release-prerelease:
+    description: "Mark release as prerelease."
+    required: false
+    default: false
+  release-title-prefix:
+    description: "Prefix for release title."
+    required: false
+    default: ""
+  custom-tag:
+    description: "Custom tag for the release. If empty, 'v{version}' is used."
+    required: false
+    default: ""
+  fallback-version:
+    description: "Fallback version if package.json has no version."
+    required: false
+    default: ""
+  changelog-file-path:
+    description: "Path to the changelog file."
+    required: false
+    default: "CHANGELOG.md"
+
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  env:
+    GITHUB_TOKEN: ${{ inputs.github-token }}
+    RELEASE_DRAFT: ${{ inputs.release-draft }}
+    RELEASE_PRERELEASE: ${{ inputs.release-prerelease }}
+    RELEASE_TITLE_PREFIX: ${{ inputs.release-title-prefix }}
+    CUSTOM_TAG: ${{ inputs.custom-tag }}
+    FALLBACK_VERSION: ${{ inputs.fallback-version }}
+    CHANGELOG_FILE_PATH: ${{ inputs.changelog-file-path }}

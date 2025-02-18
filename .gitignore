@@ -1,0 +1,16 @@
+# Node.js dependencies
+node_modules/
+
+dist/
+
+coverage/
+
+# Logs and temporary files
+logs/
+*.log
+yarn-error.log
+.npmrc
+.DS_Store
+
+# GitHub Actions cache
+.github/workflows/node_modules/
