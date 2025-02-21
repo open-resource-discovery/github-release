@@ -9,6 +9,7 @@ CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 GITHUB_TOKEN="$GITHUB_TOKEN"
 GITHUB_API_URL="$GITHUB_API_URL"
 GITHUB_REPOSITORY="$GITHUB_REPOSITORY"
+TEMP_DIR=$(mktemp -d)
 
 if [ "$CHANGELOG_UPDATED" != "true" ]; then
   echo "Changelog was not updated. Skipping branch creation and pull request."
@@ -16,21 +17,18 @@ if [ "$CHANGELOG_UPDATED" != "true" ]; then
 fi
 
 branch_name="release-changelog-update/${VERSION}"
-echo "Creating a new branch: $branch_name"
-
-cd "$GITHUB_WORKSPACE" || exit 1
+echo "Cloning workspace to temporary directory: $TEMP_DIR"
+cp -r "$GITHUB_WORKSPACE/." "$TEMP_DIR/"
+cd "$TEMP_DIR" || exit 1
 
 git fetch origin "$TARGET_BRANCH"
-git checkout "$TARGET_BRANCH"
-git pull origin "$TARGET_BRANCH"
 
 if git ls-remote --exit-code --heads origin "$branch_name"; then
-  echo "Branch $branch_name already exists. Checking it out..."
   git checkout "$branch_name"
-  git pull origin "$branch_name" --rebase || echo "No updates to rebase."
+  git pull --rebase origin "$branch_name" || echo "No updates to rebase."
 else
   echo "Creating new branch: $branch_name"
-  git checkout -b "$branch_name"
+  git checkout -b "$branch_name" "origin/$TARGET_BRANCH"
 fi
 
 # Stage and commit local changes to avoid issues when switching branches
@@ -47,7 +45,10 @@ response=$(curl -s -X POST \
   -H "Authorization: Bearer $GITHUB_TOKEN" \
   -H "Accept: application/vnd.github+json" \
   -d "{\"title\":\"$pr_title\",\"head\":\"$branch_name\",\"base\":\"$TARGET_BRANCH\",\"body\":\"$pr_body\"}" \
-  "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls")
+  "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls") || {
+      echo "::error:: Create a pull request"
+      exit 1
+    }
 
 pr_url=$(echo "$response" | jq -r '.html_url // empty')
 
@@ -58,6 +59,9 @@ fi
 
 echo "PR_URL=$pr_url" | tee -a $GITHUB_ENV
 export PR_URL="$pr_url"
+
+cd "$GITHUB_WORKSPACE"
+rm -rf "$TEMP_DIR"
 
 # Notify the user about the created PR
 echo "::notice::A pull request has been created for the changelog update."
