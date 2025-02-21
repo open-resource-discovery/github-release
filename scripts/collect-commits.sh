@@ -39,7 +39,7 @@ else
 fi
 
 # Check if commit range is valid
-if [ -z "$commit_range" ]; then
+if [ -z "$commit_range" ] || [ "$commit_range" = ".." ]; then
   echo "No commit range defined. Skipping commit collection."
   exit 0
 fi
