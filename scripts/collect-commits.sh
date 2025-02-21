@@ -48,8 +48,6 @@ if [ -z "$commit_range" ]; then
   return 0
 fi
 
-echo "Debug: commit_range after validation is '$commit_range'"
-
 # Collect commit log and contributors
 commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%an|%ae") || { echo "::error:: commit data failed"; return 0; }
 if [ -z "$commit_data" ]; then
@@ -60,8 +58,19 @@ if [ -z "$commit_data" ]; then
   return 0
 fi
 
+echo "Debug: BASE_URL is '$BASE_URL'"
+echo "Debug: REPO is '$REPO'"
+
 # Collect commit log
-commit_log=$(git log "$commit_range" --max-count=30 --pretty=format:"* [%h]($BASE_URL/$REPO/commit/%H) %s (%an)")|| { echo "::error:: commit log failed"; return 0; }
+commit_log=$(git log "$commit_range" --max-count=30 --pretty=format:"* [%h]($BASE_URL/$REPO/commit/%H) %s (%an)")
+log_status=$?
+
+if [ $log_status -ne 0 ]; then
+  echo "::error:: git log failed with exit code $log_status"
+  echo "::error:: commit_range was '$commit_range'"
+  git log "$commit_range" --max-count=30 --pretty=format:"* [%h]($BASE_URL/$REPO/commit/%H) %s (%an)" 2>&1
+  return 1 
+fi
 
 # Extract names and emails from commits
 email_to_name="{}"
