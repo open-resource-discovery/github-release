@@ -68,20 +68,27 @@ log_status=$?
 if [ $log_status -ne 0 ]; then
   echo "::error:: git log failed with exit code $log_status"
   echo "::error:: commit_range was '$commit_range'"
-  git log "$commit_range" --max-count=30 --pretty=format:"* [%h]($BASE_URL/$REPO/commit/%H) %s (%an)" 2>&1
-  return 1 
+  return 0
 fi
 
 # Extract names and emails from commits
 email_to_name="{}"
+echo "$commit_data"
 echo "$commit_data" | while IFS="|" read -r author_name author_email; do
+echo "Debug: author_name='$author_name', author_email='$author_email'"
   if [ -n "$author_name" ] && [ -n "$author_email" ]; then
     email_to_name=$(echo "$email_to_name" | jq --arg email "$author_email" --arg name "$author_name" '. + {($email): $name}')
+    if [ $? -ne 0 ]; then
+      echo "::error:: jq failed to update JSON object"
+      exit 1
+    fi
   fi
 done
+
+echo "Debug: Final JSON email_to_name = $email_to_name"
 # Extract unique emails
 commit_emails=$(echo "$commit_data" | awk -F"|" '{print $2}' | sort | uniq)
-
+echo "Debug: commit_emails = $commit_emails"
 # Save commit log to a file
 echo "$commit_log" > commit_log.txt
 
