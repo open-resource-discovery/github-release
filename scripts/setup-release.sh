@@ -107,18 +107,18 @@ if [ -z "$latest_tag" ]; then
 else
   echo "Latest tag: $latest_tag"
   echo "LATEST_TAG=$latest_tag" | tee -a $GITHUB_ENV
-  export LATEST_TAG=latest_tag
+  export LATEST_TAG=$latest_tag
 fi
 
 # Determine the target branch
 if [ -n "$GITHUB_BASE_REF" ]; then
   echo "Target branch determined from GITHUB_BASE_REF: $GITHUB_BASE_REF"
   echo "TARGET_BRANCH=$GITHUB_BASE_REF" | tee -a $GITHUB_ENV
-  export TARGET_BRANCH=GITHUB_BASE_REF
+  export TARGET_BRANCH=$GITHUB_BASE_REF
 elif [ -n "$GITHUB_REF_NAME" ]; then
   echo "Target branch determined from GITHUB_REF_NAME: $GITHUB_REF_NAME"
   echo "TARGET_BRANCH=$GITHUB_REF_NAME" | tee -a $GITHUB_ENV
-  export TARGET_BRANCH=GITHUB_REF_NAME
+  export TARGET_BRANCH=$GITHUB_REF_NAME
 else
   echo "No target branch found. Falling back to default branch: main"
   echo "TARGET_BRANCH=main" | tee -a $GITHUB_ENV
