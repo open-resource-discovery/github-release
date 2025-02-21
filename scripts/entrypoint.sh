@@ -24,19 +24,11 @@ echo "RELEASE_PRERELEASE=$(printenv INPUT_RELEASE-PRERELEASE)" | tee -a "$GITHUB
 export RELEASE_TITLE_PREFIX="$(printenv INPUT_RELEASE-TITLE-PREFIX)"
 echo "RELEASE_TITLE_PREFIX=$(printenv INPUT_RELEASE-TITLE-PREFIX)" | tee -a "$GITHUB_ENV"
 
-echo "::group::All environment variables"
-env | sort
-echo "::endgroup::"
-
 # Import scripts instead of executing them with sh
 . /app/scripts/setup-release.sh
 . /app/scripts/collect-commits.sh
 . /app/scripts/update-changelog.sh
 . /app/scripts/create-pr.sh
 . /app/scripts/create-release.sh
-
-echo "::group::All environment variables"
-env | sort
-echo "::endgroup::"
 
 echo "GitHub Action execution completed."

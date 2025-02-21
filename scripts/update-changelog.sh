@@ -32,9 +32,6 @@ if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
               /^## \\[\\[$VERSION\\]\\(.*\\)\\]/ {flag=1; next} \
               /^## \\[$VERSION\\]/ {flag=1; next} \
               /^## \\[/ {flag=0} flag" "$CHANGELOG_FILE_PATH")
-    
-   echo "Debug: Extracted description:"
-   echo "$description"
 
    if [ $? -ne 0 ]; then
       echo "::warning:: Failed to extract description with awk"

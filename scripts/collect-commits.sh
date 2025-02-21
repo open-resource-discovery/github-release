@@ -38,17 +38,11 @@ else
   fi
 fi
 
-echo "Debug: latest_tag is '$latest_tag'"
-echo "Debug: previous_tag is '$previous_tag'"
-echo "Debug: commit_range before validation is '$commit_range'"
-
 # Check if commit range is valid
 if [ -z "$commit_range" ]; then
   echo "No commit range defined. Skipping commit collection."
   return 0
 fi
-
-echo "Debug: commit_range after validation is '$commit_range'"
 
 # Collect commit log and contributors
 commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%an|%ae") || { echo "::error:: commit data failed"; return 0; }
