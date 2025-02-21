@@ -72,7 +72,6 @@ if [ "$TAG_EXISTS" = "false" ]; then
   echo "Tag $TAG does not exist. Skipping release check."
   echo "RELEASE_EXISTS=false" | tee -a $GITHUB_ENV
   export RELEASE_EXISTS=false
-  return 0
 fi
 
 release_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
