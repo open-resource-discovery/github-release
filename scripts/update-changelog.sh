@@ -58,7 +58,6 @@ if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
 
    echo "CHANGELOG_UPDATED=false" | tee -a $GITHUB_ENV
    export CHANGELOG_UPDATED=false
-   exit 0
 fi
 
 # If the version does not exist, update the changelog
