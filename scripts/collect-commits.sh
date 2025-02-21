@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e  # Stop the script if any command fails
 
 # Define variables
@@ -73,7 +73,7 @@ fi
 
 # Extract names and emails from commits
 email_to_name=$(jq -n '{}')
-echo "$commit_data" | while IFS="|" read -r author_name author_email; do
+while IFS="|" read -r author_name author_email; do
   echo "Debug: author_name='$author_name', author_email='$author_email'"
 
   if [ -n "$author_name" ] && [ -n "$author_email" ]; then
@@ -83,10 +83,10 @@ echo "$commit_data" | while IFS="|" read -r author_name author_email; do
     
     if [ $? -ne 0 ]; then
       echo "::error:: jq failed to update JSON object"
-      return 1
+      exit 1
     fi
   fi
-done
+done <<< "$commit_data"
 
 echo "Debug: Final JSON email_to_name = $email_to_name"
 # Extract unique emails
@@ -126,7 +126,7 @@ for email in $commit_emails; do
         echo "::warning:: GitHub user request failed for login $login"
         continue
       }
-
+ 
       full_name=$(echo "$user_response" | jq -r '.name // empty')
 
       if [ -n "$full_name" ] && [ "$full_name" != "empty" ]; then
