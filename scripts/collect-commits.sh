@@ -5,6 +5,8 @@ set -e  # Stop the script if any command fails
 BASE_URL="$GITHUB_SERVER_URL"
 REPO="$GITHUB_REPOSITORY"
 
+git fetch origin "$TARGET_BRANCH"
+
 # Skip commit and contributor collection if the release already exists
 if [ "$RELEASE_EXISTS" = "true" ]; then
   echo "Skipping commit and contributor collection as the release already exists."
