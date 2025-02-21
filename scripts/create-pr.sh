@@ -19,7 +19,7 @@ if git ls-remote --exit-code --heads origin "$branch_name"; then
   git pull --rebase origin "$branch_name" || echo "No updates to rebase."
 else
   echo "Creating new branch: $branch_name"
-  git checkout -b "$branch_name" "origin/$TARGET_BRANCH"
+  git checkout -b "$branch_name"
 fi
 
 # Stage and commit local changes to avoid issues when switching branches
