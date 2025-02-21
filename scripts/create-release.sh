@@ -3,7 +3,7 @@ set -e  # Stop the script if any command fails
 
 if [ "$RELEASE_EXISTS" = "true" ] || [ "$CHANGELOG_UPDATED" = "true" ]; then
   echo "Skipping release creation as either the release already exists or the changelog has been updated."
-  exit 0
+  return 0
 fi
 
 if [ -z "$TAG" ]; then

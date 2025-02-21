@@ -8,14 +8,14 @@ REPO="$GITHUB_REPOSITORY"
 # Skip commit and contributor collection if the release already exists
 if [ "$RELEASE_EXISTS" = "true" ]; then
   echo "Skipping commit and contributor collection as the release already exists."
-  exit 0
+  exit 1
 fi
 
 # Fetch all git tags
-git fetch --tags || { echo "::error:: Failed to fetch git tags"; exit 0; }
+git fetch --tags || { echo "::error:: Failed to fetch git tags"; return 0; }
 
 # Sort tags by creation date
-sorted_tags=$(git for-each-ref --sort=creatordate --format='%(refname:short)' refs/tags) || { echo "::error:: Failed Sort tags by creation date"; exit 0; }
+sorted_tags=$(git for-each-ref --sort=creatordate --format='%(refname:short)' refs/tags) || { echo "::error:: Failed Sort tags by creation date"; return 0; }
 
 # Determine commit range
 if [ "$TAG_EXISTS" = "true" ]; then
@@ -45,23 +45,23 @@ echo "Debug: commit_range before validation is '$commit_range'"
 # Check if commit range is valid
 if [ -z "$commit_range" ]; then
   echo "No commit range defined. Skipping commit collection."
-  exit 0
+  return 0
 fi
 
 echo "Debug: commit_range after validation is '$commit_range'"
 
 # Collect commit log and contributors
-commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%an|%ae") || { echo "::error:: commit data failed"; exit 0; }
+commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%an|%ae") || { echo "::error:: commit data failed"; return 0; }
 if [ -z "$commit_data" ]; then
   echo "No commits found in the specified range."
   commit_log="* No changes since last release."
   echo "$commit_log" > commit_log.txt
   echo "<table><tr><td>No contributors found</td></tr></table>" > contributors.txt
-  exit 0
+  return 0
 fi
 
 # Collect commit log
-commit_log=$(git log "$commit_range" --max-count=30 --pretty=format:"* [%h]($BASE_URL/$REPO/commit/%H) %s (%an)")|| { echo "::error:: commit log failed"; exit 0; }
+commit_log=$(git log "$commit_range" --max-count=30 --pretty=format:"* [%h]($BASE_URL/$REPO/commit/%H) %s (%an)")|| { echo "::error:: commit log failed"; return 0; }
 
 # Extract names and emails from commits
 email_to_name="{}"

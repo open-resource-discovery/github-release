@@ -28,7 +28,7 @@ fi
 
 if [ -z "$version" ] || [ "$version" = "null" ]; then
   echo "Error: No version found in package.json and no fallback version provided."
-  exit 1
+  return 1
 fi
 
 if [ -n "$CUSTOM_TAG" ]; then
@@ -72,14 +72,14 @@ if [ "$TAG_EXISTS" = "false" ]; then
   echo "Tag $TAG does not exist. Skipping release check."
   echo "RELEASE_EXISTS=false" | tee -a $GITHUB_ENV
   export RELEASE_EXISTS=false
-  exit 0
+  return 0
 fi
 
 release_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                    -H "Accept: application/vnd.github+json" \
                    "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/$TAG") || {
       echo "::error:: Release for tag $TAG"
-      exit 1
+      return 0
     }
 
 if echo "$release_response" | jq -e '.id' > /dev/null; then
