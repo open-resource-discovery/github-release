@@ -9,9 +9,12 @@ echo "::endgroup::"
 
 # Export all INPUT_ variables as environment variables, replacing "-" with "_"
 for var in $(env | grep '^INPUT_' | sed 's/=.*//'); do
-  new_var=$(echo "$var" | sed 's/^INPUT_//' | tr '-' '_')  # Ersetze "-" mit "_"
-  eval "export $new_var=\"\$$var\""
+  new_var=$(echo "$var" | sed 's/^INPUT_//' | tr '-' '_')
+
+  echo "$new_var=${!var}" | tee -a "$GITHUB_ENV"
+  export "$new_var=${!var}"
 done
+
 
 echo "::group::All environment variables"
 env | sort
