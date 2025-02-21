@@ -97,6 +97,7 @@ echo "$commit_log" > commit_log.txt
 # Prepare contributors list with profile pictures
 contributor_details="<table><tr>"
 for email in $commit_emails; do
+  echo "Debug: Processing email: '$email'"
 
   if echo "$email" | grep -q '\[bot\]'; then
     echo "::warning:: Skipping bot user: $email"
@@ -104,15 +105,18 @@ for email in $commit_emails; do
   fi
 
   author_name=$(echo "$email_to_name" | jq -r --arg email "$email" '.[$email] // empty')
+  echo "Debug: Found author_name: '$author_name' for email: '$email'"
 
   # Query GitHub API for user details
-  if [ -z "$author_name" ]; then
+  if [ -z "$author_name" ] || [ "$author_name" = "empty" ]; then
+    echo "Debug: author_name is empty, querying GitHub API..."
     response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                     -H "Accept: application/vnd.github+json" \
                     "$BASE_URL/api/v3/search/users?q=$email") || {
       echo "::warning:: GitHub API request failed for email $email"
       continue
     }
+    echo "Debug: GitHub API response: '$response'"
 
     login=$(echo "$response" | jq -r '.items[0].login // empty')
     profile_url=$(echo "$response" | jq -r '.items[0].html_url // empty')
@@ -125,6 +129,7 @@ for email in $commit_emails; do
         echo "::warning:: GitHub user request failed for login $login"
         continue
       }
+      echo "Debug: GitHub user response: '$user_response'"
  
       full_name=$(echo "$user_response" | jq -r '.name // empty')
 
@@ -140,8 +145,6 @@ for email in $commit_emails; do
       echo "WARNING: No GitHub user found for email $email. Skipping..."
       continue
     fi
-  else
-      echo "Debug: author_name = $author_name"
   fi
 
   if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
