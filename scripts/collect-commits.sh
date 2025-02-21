@@ -72,7 +72,7 @@ if [ $log_status -ne 0 ]; then
 fi
 
 # Extract names and emails from commits
-email_to_name='{}'
+email_to_name=$(jq -n '{}')
 echo "$commit_data" | while IFS="|" read -r author_name author_email; do
   echo "Debug: author_name='$author_name', author_email='$author_email'"
 
