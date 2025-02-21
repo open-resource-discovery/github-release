@@ -48,6 +48,7 @@ if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
    } > changelog_content.txt
 
    echo "CHANGELOG_UPDATED=false" >> "$GITHUB_ENV"
+   export CHANGELOG_UPDATED=false
    exit 0
 fi
 
@@ -84,3 +85,4 @@ rest=$(awk 'BEGIN {found_unreleased=0; found_first_version=0} \
 } > changelog_content.txt
 
 echo "CHANGELOG_UPDATED=true" >> "$GITHUB_ENV"
+export CHANGELOG_UPDATED=true

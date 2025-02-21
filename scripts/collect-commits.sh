@@ -15,7 +15,7 @@ fi
 git fetch --tags || { echo "::error:: Failed to fetch git tags"; exit 0; }
 
 # Sort tags by creation date
-sorted_tags=$(git for-each-ref --sort=creatordate --format='%(refname:short)' refs/tags)
+sorted_tags=$(git for-each-ref --sort=creatordate --format='%(refname:short)' refs/tags) || { echo "::error:: Failed Sort tags by creation date"; exit 0; }
 
 # Determine commit range
 if [ "$TAG_EXISTS" = "true" ]; then
