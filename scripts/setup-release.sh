@@ -72,7 +72,10 @@ fi
 
 release_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                    -H "Accept: application/vnd.github+json" \
-                   "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/$TAG")
+                   "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/releases/tags/$TAG") || {
+      echo "::error:: Release for tag $TAG"
+      exit 1
+    }
 
 if echo "$release_response" | jq -e '.id' > /dev/null; then
   echo "Release for tag $TAG already exists."
