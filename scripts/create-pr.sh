@@ -3,7 +3,6 @@ set -e  # Stop the script if any command fails
 
 # Define variables
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
-TEMP_DIR=$(mktemp -d)
 
 if [ "$CHANGELOG_UPDATED" != "true" ]; then
   echo "Changelog was not updated. Skipping branch creation and pull request."
@@ -12,8 +11,6 @@ fi
 
 branch_name="release-changelog-update/${VERSION}"
 echo "Cloning workspace to temporary directory: $TEMP_DIR"
-cp -r "$GITHUB_WORKSPACE/." "$TEMP_DIR/"
-cd "$TEMP_DIR" || exit 1
 
 git fetch origin "$TARGET_BRANCH"
 

@@ -38,10 +38,6 @@ else
   fi
 fi
 
-echo "Debug: latest_tag is '$latest_tag'"
-echo "Debug: previous_tag is '$previous_tag'"
-echo "Debug: commit_range before validation is '$commit_range'"
-
 # Check if commit range is valid
 if [ -z "$commit_range" ]; then
   echo "No commit range defined. Skipping commit collection."
@@ -58,9 +54,6 @@ if [ -z "$commit_data" ]; then
   return 0
 fi
 
-echo "Debug: BASE_URL is '$BASE_URL'"
-echo "Debug: REPO is '$REPO'"
-
 # Collect commit log
 commit_log=$(git log "$commit_range" --max-count=30 --pretty=format:"* [%h]($BASE_URL/$REPO/commit/%H) %s (%an)")
 log_status=$?
@@ -71,23 +64,6 @@ if [ $log_status -ne 0 ]; then
   return 0
 fi
 
-# Extract names and emails from commits
-email_to_name=$(echo "$commit_data" | awk -F"|" '
-BEGIN { printf "{ " }
-{
-    if (NR > 1) printf ", ";
-    printf "\"%s\": \"%s\"", $2, $1
-}
-END { print " }" }
-')
-
-# Prüfe, ob die JSON-Struktur korrekt ist
-if ! echo "$email_to_name" | jq empty; then
-  echo "::error:: Generated JSON for email_to_name is invalid"
-  return 0
-fi
-
-echo "Debug: Final JSON email_to_name = $email_to_name"
 # Extract unique emails
 commit_emails=$(echo "$commit_data" | awk -F"|" '{print $2}' | sort | uniq)
 echo "Debug: commit_emails = $commit_emails"
@@ -97,26 +73,19 @@ echo "$commit_log" > commit_log.txt
 # Prepare contributors list with profile pictures
 contributor_details="<table><tr>"
 for email in $commit_emails; do
-  echo "Debug: Processing email: '$email'"
 
   if echo "$email" | grep -q '\[bot\]'; then
     echo "::warning:: Skipping bot user: $email"
     continue
   fi
 
-  author_name=$(echo "$email_to_name" | jq -r --arg email "$email" '.[$email] // empty')
-  echo "Debug: Found author_name: '$author_name' for email: '$email'"
-
   # Query GitHub API for user details
-  if [ -z "$author_name" ] || [ "$author_name" = "empty" ]; then
-    echo "Debug: author_name is empty, querying GitHub API..."
     response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                     -H "Accept: application/vnd.github+json" \
                     "$BASE_URL/api/v3/search/users?q=$email") || {
       echo "::warning:: GitHub API request failed for email $email"
       continue
     }
-    echo "Debug: GitHub API response: '$response'"
 
     login=$(echo "$response" | jq -r '.items[0].login // empty')
     profile_url=$(echo "$response" | jq -r '.items[0].html_url // empty')
@@ -129,7 +98,6 @@ for email in $commit_emails; do
         echo "::warning:: GitHub user request failed for login $login"
         continue
       }
-      echo "Debug: GitHub user response: '$user_response'"
  
       full_name=$(echo "$user_response" | jq -r '.name // empty')
 
@@ -142,13 +110,12 @@ for email in $commit_emails; do
       profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
       avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
     else
-      echo "WARNING: No GitHub user found for email $email. Skipping..."
+      echo "::warning:: No GitHub user found for email $email. Skipping..."
       continue
     fi
-  fi
 
   if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
-    echo "WARNING: No valid GitHub profile for $email. Skipping..."
+    echo "::warning:: No valid GitHub profile for $email. Skipping..."
     continue
   fi
 

@@ -5,10 +5,16 @@ set -e  # Stop the script if any command fails
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 VERSION_LINK="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"
 
+echo "Debug: TARGET_BRANCH='$TARGET_BRANCH'"
+echo "Debug: VERSION='$VERSION'"
+echo "Debug: CHANGELOG_FILE_PATH='$CHANGELOG_FILE_PATH'"
+
+TEMP_DIR=$(mktemp -d)
+cp -r "$GITHUB_WORKSPACE/." "$TEMP_DIR/"
+cd "$TEMP_DIR" || exit 1
+
 # Fetch the latest changes from the target branch
 git fetch origin "$TARGET_BRANCH"
-git checkout "$TARGET_BRANCH"
-git pull origin "$TARGET_BRANCH"
 
 # Ensure required files exist
 if [ ! -f commit_log.txt ]; then
