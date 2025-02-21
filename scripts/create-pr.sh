@@ -3,6 +3,7 @@ set -e  # Stop the script if any command fails
 
 # Define variables
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
+TEMP_DIR=$(mktemp -d)
 
 if [ "$CHANGELOG_UPDATED" != "true" ]; then
   echo "Changelog was not updated. Skipping branch creation and pull request."
@@ -11,8 +12,18 @@ fi
 
 branch_name="release-changelog-update/${VERSION}"
 echo "Cloning workspace to temporary directory: $TEMP_DIR"
+cp -r "$GITHUB_WORKSPACE/." "$TEMP_DIR/"
+cd "$TEMP_DIR" || exit 1
 
 git fetch origin "$TARGET_BRANCH"
+
+if git diff --quiet -- "$CHANGELOG_FILE_PATH"; then
+  echo "No changes in $CHANGELOG_FILE_PATH"
+else
+  echo "Saving changes before switching branches..."
+  git add "$CHANGELOG_FILE_PATH"
+  git commit -m "chore: save changelog changes before branch switch"
+fi
 
 if git ls-remote --exit-code --heads origin "$branch_name"; then
   git checkout "$branch_name"

@@ -9,13 +9,6 @@ echo "Debug: TARGET_BRANCH='$TARGET_BRANCH'"
 echo "Debug: VERSION='$VERSION'"
 echo "Debug: CHANGELOG_FILE_PATH='$CHANGELOG_FILE_PATH'"
 
-TEMP_DIR=$(mktemp -d)
-cp -r "$GITHUB_WORKSPACE/." "$TEMP_DIR/"
-cd "$TEMP_DIR" || exit 1
-
-# Fetch the latest changes from the target branch
-git fetch origin "$TARGET_BRANCH"
-
 # Ensure required files exist
 if [ ! -f commit_log.txt ]; then
   echo "Commit log file not found. No changes to update." > commit_log.txt
@@ -41,7 +34,6 @@ if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
 
    if [ $? -ne 0 ]; then
       echo "::warning:: Failed to extract description with awk"
-      return 0
    fi
 
    if [ -z "$description" ]; then
