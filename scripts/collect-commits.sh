@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e  # Stop the script if any command fails
 
 # Define variables
@@ -72,21 +72,20 @@ if [ $log_status -ne 0 ]; then
 fi
 
 # Extract names and emails from commits
-email_to_name=$(jq -n '{}')
-while IFS="|" read -r author_name author_email; do
-  echo "Debug: author_name='$author_name', author_email='$author_email'"
+email_to_name=$(echo "$commit_data" | awk -F"|" '
+BEGIN { printf "{ " }
+{
+    if (NR > 1) printf ", ";
+    printf "\"%s\": \"%s\"", $2, $1
+}
+END { print " }" }
+')
 
-  if [ -n "$author_name" ] && [ -n "$author_email" ]; then
-    echo "Debug: Adding $author_name <$author_email> to JSON"
-    
-    email_to_name=$(echo "$email_to_name" | jq --arg email "$author_email" --arg name "$author_name" '. + {($email): $name}')
-    
-    if [ $? -ne 0 ]; then
-      echo "::error:: jq failed to update JSON object"
-      exit 1
-    fi
-  fi
-done <<< "$commit_data"
+# Prüfe, ob die JSON-Struktur korrekt ist
+if ! echo "$email_to_name" | jq empty; then
+  echo "::error:: Generated JSON for email_to_name is invalid"
+  return 0
+fi
 
 echo "Debug: Final JSON email_to_name = $email_to_name"
 # Extract unique emails
@@ -141,6 +140,8 @@ for email in $commit_emails; do
       echo "WARNING: No GitHub user found for email $email. Skipping..."
       continue
     fi
+  else
+      echo "Debug: author_name = $author_name"
   fi
 
   if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
