@@ -38,11 +38,3 @@ inputs:
 runs:
   using: "docker"
   image: "Dockerfile"
-  env:
-    GITHUB_TOKEN: ${{ inputs.github-token }}
-    RELEASE_DRAFT: ${{ inputs.release-draft }}
-    RELEASE_PRERELEASE: ${{ inputs.release-prerelease }}
-    RELEASE_TITLE_PREFIX: ${{ inputs.release-title-prefix }}
-    CUSTOM_TAG: ${{ inputs.custom-tag }}
-    FALLBACK_VERSION: ${{ inputs.fallback-version }}
-    CHANGELOG_FILE_PATH: ${{ inputs.changelog-file-path }}

@@ -1,9 +1,6 @@
 #!/bin/sh
 set -e  # Stop the script if any command fails
 
-# Load GitHub environment variables
-source "$GITHUB_ENV"
-
 # Define variables
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 VERSION_LINK="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"

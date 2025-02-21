@@ -7,11 +7,6 @@ git config --global --add safe.directory /github/workspace
 git config --global user.name "${GITHUB_ACTOR}"
 git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
-# Define variables from GitHub Actions environment
-GITHUB_TOKEN="$GITHUB_TOKEN"
-GITHUB_API_URL="$GITHUB_API_URL"
-GITHUB_REPOSITORY="$GITHUB_REPOSITORY"
-
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 FALLBACK_VERSION="${FALLBACK_VERSION:-}"
 CUSTOM_TAG="${CUSTOM_TAG:-}"

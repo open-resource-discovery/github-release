@@ -1,14 +1,8 @@
 #!/bin/sh
 set -e  # Stop the script if any command fails
 
-# Load GitHub environment variables
-source "$GITHUB_ENV"
-
 # Define variables
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
-GITHUB_TOKEN="$GITHUB_TOKEN"
-GITHUB_API_URL="$GITHUB_API_URL"
-GITHUB_REPOSITORY="$GITHUB_REPOSITORY"
 TEMP_DIR=$(mktemp -d)
 
 if [ "$CHANGELOG_UPDATED" != "true" ]; then
@@ -54,7 +48,7 @@ pr_url=$(echo "$response" | jq -r '.html_url // empty')
 
 if [ -z "$pr_url" ] || [ "$pr_url" = "null" ]; then
   echo "::error::Failed to extract PR URL. Check API response."
-  exit 1
+  exit 0
 fi
 
 echo "PR_URL=$pr_url" | tee -a $GITHUB_ENV

@@ -1,12 +1,9 @@
 #!/bin/sh
 set -e  # Stop the script if any command fails
-# Load GitHub environment variables
-source $GITHUB_ENV
 
 # Define variables
 BASE_URL="$GITHUB_SERVER_URL"
 REPO="$GITHUB_REPOSITORY"
-GITHUB_TOKEN="$GITHUB_TOKEN"
 
 # Skip commit and contributor collection if the release already exists
 if [ "$RELEASE_EXISTS" = "true" ]; then
