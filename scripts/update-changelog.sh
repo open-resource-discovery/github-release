@@ -32,8 +32,17 @@ if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
               /^## \\[\\[$VERSION\\]\\(.*\\)\\]/ {flag=1; next} \
               /^## \\[$VERSION\\]/ {flag=1; next} \
               /^## \\[/ {flag=0} flag" "$CHANGELOG_FILE_PATH")
+    
+   echo "Debug: Extracted description:"
+   echo "$description"
+
+   if [ $? -ne 0 ]; then
+      echo "::warning:: Failed to extract description with awk"
+      exit 0
+   fi
 
    if [ -z "$description" ]; then
+     echo "No description available for version $VERSION."
      description="No description available for version $VERSION."
    fi
 
@@ -47,7 +56,7 @@ if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
      echo "$contributors"
    } > changelog_content.txt
 
-   echo "CHANGELOG_UPDATED=false" >> "$GITHUB_ENV"
+   echo "CHANGELOG_UPDATED=false" | tee -a $GITHUB_ENV
    export CHANGELOG_UPDATED=false
    exit 0
 fi
@@ -84,5 +93,5 @@ rest=$(awk 'BEGIN {found_unreleased=0; found_first_version=0} \
   echo "$contributors"
 } > changelog_content.txt
 
-echo "CHANGELOG_UPDATED=true" >> "$GITHUB_ENV"
+echo "CHANGELOG_UPDATED=true" | tee -a $GITHUB_ENV
 export CHANGELOG_UPDATED=true

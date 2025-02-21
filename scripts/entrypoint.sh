@@ -3,10 +3,6 @@ set -e  # Stop script execution on any error
 
 echo "Starting GitHub Action inside Docker container..."
 
-echo "::group::All environment variables"
-env | sort
-echo "::endgroup::"
-
 export CHANGELOG_FILE_PATH="$(printenv INPUT_CHANGELOG-FILE-PATH)"
 echo "CHANGELOG_FILE_PATH=$(printenv INPUT_CHANGELOG-FILE-PATH)" | tee -a "$GITHUB_ENV"
 
@@ -38,5 +34,9 @@ echo "::endgroup::"
 . /app/scripts/update-changelog.sh
 . /app/scripts/create-pr.sh
 . /app/scripts/create-release.sh
+
+echo "::group::All environment variables"
+env | sort
+echo "::endgroup::"
 
 echo "GitHub Action execution completed."
