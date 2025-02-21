@@ -73,22 +73,20 @@ fi
 
 # Extract names and emails from commits
 email_to_name='{}'
-while IFS="|" read -r author_name author_email; do
+echo "$commit_data" | while IFS="|" read -r author_name author_email; do
   echo "Debug: author_name='$author_name', author_email='$author_email'"
 
   if [ -n "$author_name" ] && [ -n "$author_email" ]; then
     echo "Debug: Adding $author_name <$author_email> to JSON"
     
-    # jq richtig aufrufen, um JSON-Objekt zu aktualisieren
     email_to_name=$(echo "$email_to_name" | jq --arg email "$author_email" --arg name "$author_name" '. + {($email): $name}')
     
-    # Prüfen, ob jq erfolgreich war
     if [ $? -ne 0 ]; then
       echo "::error:: jq failed to update JSON object"
-      exit 1
+      return 1
     fi
   fi
-done <<< "$commit_data"
+done
 
 echo "Debug: Final JSON email_to_name = $email_to_name"
 # Extract unique emails
