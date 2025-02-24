@@ -31,8 +31,6 @@ git commit -m "chore: update changelog for version $VERSION" || echo "No changes
 
 git push origin "$branch_name"
 
-echo "Debug: branch_name='$branch_name', TARGET_BRANCH='$TARGET_BRANCH'"
-
 # Create a pull request
 pr_title="chore: update changelog for version $VERSION"
 pr_body="This PR updates the changelog for the new version $VERSION. Please review and merge it to proceed with the release process."
@@ -45,8 +43,6 @@ response=$(curl -s -X POST \
       echo "::error:: Create a pull request"
       exit 1
     }
-
-echo "Debug: GitHub API response = $response"
 
 pr_url=$(echo "$response" | jq -r '.html_url // empty')
 
