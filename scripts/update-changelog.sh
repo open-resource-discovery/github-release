@@ -5,9 +5,13 @@ set -e  # Stop the script if any command fails
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 VERSION_LINK="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"
 git fetch origin "$TARGET_BRANCH"
-echo "Debug: TARGET_BRANCH='$TARGET_BRANCH'"
-echo "Debug: VERSION='$VERSION'"
-echo "Debug: CHANGELOG_FILE_PATH='$CHANGELOG_FILE_PATH'"
+
+if ! git diff --quiet origin/"$TARGET_BRANCH" -- "$CHANGELOG_FILE_PATH"; then
+  echo "Local CHANGELOG.md is outdated. Pulling latest changes..."
+  git pull origin "$TARGET_BRANCH"
+else
+  echo "CHANGELOG.md is up to date."
+fi
 
 # Ensure required files exist
 if [ ! -f commit_log.txt ]; then
