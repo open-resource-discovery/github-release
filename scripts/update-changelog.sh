@@ -13,6 +13,14 @@ else
   echo "CHANGELOG.md is up to date."
 fi
 
+if git diff --quiet -- "$CHANGELOG_FILE_PATH"; then
+  echo "No changes in $CHANGELOG_FILE_PATH"
+else
+  echo "Saving changes before switching branches..."
+  git add "$CHANGELOG_FILE_PATH"
+  git commit -m "chore: save changelog changes before branch switch"
+fi
+
 # Ensure required files exist
 if [ ! -f commit_log.txt ]; then
   echo "Commit log file not found. No changes to update." > commit_log.txt

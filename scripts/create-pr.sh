@@ -17,21 +17,6 @@ cd "$TEMP_DIR" || exit 1
 
 git fetch origin "$TARGET_BRANCH"
 
-if ! git diff --quiet origin/"$TARGET_BRANCH" -- "$CHANGELOG_FILE_PATH"; then
-  echo "Local CHANGELOG.md is outdated. Pulling latest changes..."
-  git pull origin "$TARGET_BRANCH"
-else
-  echo "CHANGELOG.md is up to date."
-fi
-
-if git diff --quiet -- "$CHANGELOG_FILE_PATH"; then
-  echo "No changes in $CHANGELOG_FILE_PATH"
-else
-  echo "Saving changes before switching branches..."
-  git add "$CHANGELOG_FILE_PATH"
-  git commit -m "chore: save changelog changes before branch switch"
-fi
-
 if git ls-remote --exit-code --heads origin "$branch_name"; then
   git checkout "$branch_name"
   git pull --rebase origin "$branch_name" || echo "No updates to rebase."
