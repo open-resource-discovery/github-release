@@ -3,9 +3,6 @@ set -e  # Stop the script if any command fails
 
 # Define variables
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
-GITHUB_TOKEN="$GITHUB_TOKEN"
-GITHUB_API_URL="$GITHUB_API_URL"
-GITHUB_REPOSITORY="$GITHUB_REPOSITORY"
 TEMP_DIR=$(mktemp -d)
 
 if [ "$CHANGELOG_UPDATED" != "true" ]; then
@@ -33,7 +30,7 @@ if git ls-remote --exit-code --heads origin "$branch_name"; then
   git pull --rebase origin "$branch_name" || echo "No updates to rebase."
 else
   echo "Creating new branch: $branch_name"
-  git checkout -b "$branch_name" "origin/$TARGET_BRANCH"
+  git checkout -b "$branch_name"
 fi
 
 # Stage and commit local changes to avoid issues when switching branches
