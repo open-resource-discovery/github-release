@@ -14,6 +14,9 @@ branch_name="release-changelog-update/${VERSION}"
 echo "Cloning workspace to temporary directory: $TEMP_DIR"
 cp -r "$GITHUB_WORKSPACE/." "$TEMP_DIR/"
 cd "$TEMP_DIR" || exit 1
+echo "Cloning workspace to temporary directory: $TEMP_DIR"
+cp -r "$GITHUB_WORKSPACE/." "$TEMP_DIR/"
+cd "$TEMP_DIR" || exit 1
 
 git fetch origin "$TARGET_BRANCH"
 
@@ -28,9 +31,10 @@ fi
 if git ls-remote --exit-code --heads origin "$branch_name"; then
   git checkout "$branch_name"
   git pull --rebase origin "$branch_name" || echo "No updates to rebase."
+  git pull --rebase origin "$branch_name" || echo "No updates to rebase."
 else
   echo "Creating new branch: $branch_name"
-  git checkout -b "$branch_name"
+  git checkout -b "$branch_name" "origin/$TARGET_BRANCH"
 fi
 
 # Stage and commit local changes to avoid issues when switching branches
@@ -51,6 +55,10 @@ response=$(curl -s -X POST \
       echo "::error:: Create a pull request"
       exit 1
     }
+  "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls") || {
+      echo "::error:: Create a pull request"
+      exit 1
+    }
 
 pr_url=$(echo "$response" | jq -r '.html_url // empty')
 
@@ -60,6 +68,9 @@ fi
 
 echo "PR_URL=$pr_url" | tee -a $GITHUB_ENV
 export PR_URL="$pr_url"
+
+cd "$GITHUB_WORKSPACE"
+rm -rf "$TEMP_DIR"
 
 cd "$GITHUB_WORKSPACE"
 rm -rf "$TEMP_DIR"
