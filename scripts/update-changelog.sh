@@ -1,17 +1,25 @@
 #!/bin/sh
 set -e  # Stop the script if any command fails
 
-# Load GitHub environment variables
-source "$GITHUB_ENV"
-
 # Define variables
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 VERSION_LINK="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"
-
-# Fetch the latest changes from the target branch
 git fetch origin "$TARGET_BRANCH"
-git checkout "$TARGET_BRANCH"
-git pull origin "$TARGET_BRANCH"
+
+if ! git diff --quiet origin/"$TARGET_BRANCH" -- "$CHANGELOG_FILE_PATH"; then
+  echo "Local CHANGELOG.md is outdated. Pulling latest changes..."
+  git pull origin "$TARGET_BRANCH"
+else
+  echo "CHANGELOG.md is up to date."
+fi
+
+if git diff --quiet -- "$CHANGELOG_FILE_PATH"; then
+  echo "No changes in $CHANGELOG_FILE_PATH"
+else
+  echo "Saving changes before switching branches..."
+  git add "$CHANGELOG_FILE_PATH"
+  git commit -m "chore: save changelog changes before branch switch"
+fi
 
 # Ensure required files exist
 if [ ! -f commit_log.txt ]; then
@@ -36,7 +44,12 @@ if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
               /^## \\[$VERSION\\]/ {flag=1; next} \
               /^## \\[/ {flag=0} flag" "$CHANGELOG_FILE_PATH")
 
+   if [ $? -ne 0 ]; then
+      echo "::warning:: Failed to extract description with awk"
+   fi
+
    if [ -z "$description" ]; then
+     echo "No description available for version $VERSION."
      description="No description available for version $VERSION."
    fi
 
@@ -50,8 +63,9 @@ if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
      echo "$contributors"
    } > changelog_content.txt
 
-   echo "CHANGELOG_UPDATED=false" >> "$GITHUB_ENV"
-   exit 0
+   echo "CHANGELOG_UPDATED=false" | tee -a $GITHUB_ENV
+   export CHANGELOG_UPDATED=false
+   return 0
 fi
 
 # If the version does not exist, update the changelog
@@ -86,4 +100,5 @@ rest=$(awk 'BEGIN {found_unreleased=0; found_first_version=0} \
   echo "$contributors"
 } > changelog_content.txt
 
-echo "CHANGELOG_UPDATED=true" >> "$GITHUB_ENV"
+echo "CHANGELOG_UPDATED=true" | tee -a $GITHUB_ENV
+export CHANGELOG_UPDATED=true

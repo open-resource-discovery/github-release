@@ -1,12 +1,9 @@
 #!/bin/sh
 set -e  # Stop the script if any command fails
 
-# Load GitHub environment variables
-source "$GITHUB_ENV"
-
 if [ "$RELEASE_EXISTS" = "true" ] || [ "$CHANGELOG_UPDATED" = "true" ]; then
   echo "Skipping release creation as either the release already exists or the changelog has been updated."
-  exit 0
+  return 0
 fi
 
 if [ -z "$TAG" ]; then
@@ -17,8 +14,10 @@ fi
 echo "Creating or updating release for tag: $TAG"
 
 # Run the Node.js release script
-env TAG="$TAG" TARGET_BRANCH="$TARGET_BRANCH" RELEASE_TITLE="$RELEASE_TITLE" RELEASE_BODY="$(cat changelog_content.txt)" RELEASE_DRAFT="$RELEASE_DRAFT" RELEASE_PRERELEASE="$RELEASE_PRERELEASE" node /app/dist/src/release.js
-
+env TAG="$TAG" TARGET_BRANCH="$TARGET_BRANCH" RELEASE_TITLE="$RELEASE_TITLE" \
+    RELEASE_BODY="$(cat changelog_content.txt)" RELEASE_DRAFT="$RELEASE_DRAFT" \
+    RELEASE_PRERELEASE="$RELEASE_PRERELEASE" node /app/dist/src/release.js
+    
 echo "Release process completed."
 
 # Notify consumers about the new release

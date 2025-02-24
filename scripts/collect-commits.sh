@@ -1,24 +1,23 @@
 #!/bin/sh
 set -e  # Stop the script if any command fails
-# Load GitHub environment variables
-source $GITHUB_ENV
 
 # Define variables
 BASE_URL="$GITHUB_SERVER_URL"
 REPO="$GITHUB_REPOSITORY"
-GITHUB_TOKEN="$GITHUB_TOKEN"
+
+git fetch origin "$TARGET_BRANCH"
 
 # Skip commit and contributor collection if the release already exists
 if [ "$RELEASE_EXISTS" = "true" ]; then
   echo "Skipping commit and contributor collection as the release already exists."
-  exit 0
+  exit 1
 fi
 
 # Fetch all git tags
-git fetch --tags || { echo "::error:: Failed to fetch git tags"; exit 0; }
+git fetch --tags || { echo "::error:: Failed to fetch git tags"; return 0; }
 
 # Sort tags by creation date
-sorted_tags=$(git for-each-ref --sort=creatordate --format='%(refname:short)' refs/tags)
+sorted_tags=$(git for-each-ref --sort=creatordate --format='%(refname:short)' refs/tags) || { echo "::error:: Failed Sort tags by creation date"; return 0; }
 
 # Determine commit range
 if [ "$TAG_EXISTS" = "true" ]; then
@@ -44,29 +43,29 @@ fi
 # Check if commit range is valid
 if [ -z "$commit_range" ]; then
   echo "No commit range defined. Skipping commit collection."
-  exit 0
+  return 0
 fi
 
 # Collect commit log and contributors
-commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%an|%ae") || { echo "::error:: git log failed"; exit 0; }
+commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%an|%ae") || { echo "::error:: commit data failed"; return 0; }
 if [ -z "$commit_data" ]; then
-  echo "No commits found in the specified range."
+  echo "No commits found in the specified range."   
   commit_log="* No changes since last release."
   echo "$commit_log" > commit_log.txt
   echo "<table><tr><td>No contributors found</td></tr></table>" > contributors.txt
-  exit 0
+  return 0
 fi
 
 # Collect commit log
 commit_log=$(git log "$commit_range" --max-count=30 --pretty=format:"* [%h]($BASE_URL/$REPO/commit/%H) %s (%an)")
+log_status=$?
 
-# Extract names and emails from commits
-email_to_name="{}"
-echo "$commit_data" | while IFS="|" read -r author_name author_email; do
-  if [ -n "$author_name" ] && [ -n "$author_email" ]; then
-    email_to_name=$(echo "$email_to_name" | jq --arg email "$author_email" --arg name "$author_name" '. + {($email): $name}')
-  fi
-done
+if [ $log_status -ne 0 ]; then
+  echo "::error:: git log failed with exit code $log_status"
+  echo "::error:: commit_range was '$commit_range'"
+  return 0
+fi
+
 # Extract unique emails
 commit_emails=$(echo "$commit_data" | awk -F"|" '{print $2}' | sort | uniq)
 
@@ -82,10 +81,7 @@ for email in $commit_emails; do
     continue
   fi
 
-  author_name=$(echo "$email_to_name" | jq -r --arg email "$email" '.[$email] // empty')
-
   # Query GitHub API for user details
-  if [ -z "$author_name" ]; then
     response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                     -H "Accept: application/vnd.github+json" \
                     "$BASE_URL/api/v3/search/users?q=$email") || {
@@ -104,7 +100,7 @@ for email in $commit_emails; do
         echo "::warning:: GitHub user request failed for login $login"
         continue
       }
-
+ 
       full_name=$(echo "$user_response" | jq -r '.name // empty')
 
       if [ -n "$full_name" ] && [ "$full_name" != "empty" ]; then
@@ -116,13 +112,12 @@ for email in $commit_emails; do
       profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
       avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
     else
-      echo "WARNING: No GitHub user found for email $email. Skipping..."
+      echo "::warning:: No GitHub user found for email $email. Skipping..."
       continue
     fi
-  fi
 
   if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
-    echo "WARNING: No valid GitHub profile for $email. Skipping..."
+    echo "::warning:: No valid GitHub profile for $email. Skipping..."
     continue
   fi
 
