@@ -3,6 +3,9 @@ set -e  # Stop the script if any command fails
 
 # Define variables
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
+GITHUB_TOKEN="$GITHUB_TOKEN"
+GITHUB_API_URL="$GITHUB_API_URL"
+GITHUB_REPOSITORY="$GITHUB_REPOSITORY"
 TEMP_DIR=$(mktemp -d)
 
 if [ "$CHANGELOG_UPDATED" != "true" ]; then
