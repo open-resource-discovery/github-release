@@ -17,6 +17,13 @@ cd "$TEMP_DIR" || exit 1
 
 git fetch origin "$TARGET_BRANCH"
 
+if ! git diff --quiet origin/"$TARGET_BRANCH" -- "$CHANGELOG_FILE_PATH"; then
+  echo "Local CHANGELOG.md is outdated. Pulling latest changes..."
+  git pull origin "$TARGET_BRANCH"
+else
+  echo "CHANGELOG.md is up to date."
+fi
+
 if git diff --quiet -- "$CHANGELOG_FILE_PATH"; then
   echo "No changes in $CHANGELOG_FILE_PATH"
 else
@@ -39,6 +46,8 @@ git commit -m "chore: update changelog for version $VERSION" || echo "No changes
 
 git push origin "$branch_name"
 
+echo "Debug: branch_name='$branch_name', TARGET_BRANCH='$TARGET_BRANCH'"
+
 # Create a pull request
 pr_title="chore: update changelog for version $VERSION"
 pr_body="This PR updates the changelog for the new version $VERSION. Please review and merge it to proceed with the release process."
@@ -51,6 +60,8 @@ response=$(curl -s -X POST \
       echo "::error:: Create a pull request"
       exit 1
     }
+
+echo "Debug: GitHub API response = $response"
 
 pr_url=$(echo "$response" | jq -r '.html_url // empty')
 
