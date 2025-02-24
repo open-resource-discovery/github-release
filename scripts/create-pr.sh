@@ -28,7 +28,6 @@ fi
 if git ls-remote --exit-code --heads origin "$branch_name"; then
   git checkout "$branch_name"
   git pull --rebase origin "$branch_name" || echo "No updates to rebase."
-  git pull --rebase origin "$branch_name" || echo "No updates to rebase."
 else
   echo "Creating new branch: $branch_name"
   git checkout -b "$branch_name" "origin/$TARGET_BRANCH"
