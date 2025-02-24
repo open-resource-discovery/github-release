@@ -55,8 +55,7 @@ response=$(curl -s -X POST \
 pr_url=$(echo "$response" | jq -r '.html_url // empty')
 
 if [ -z "$pr_url" ] || [ "$pr_url" = "null" ]; then
-  echo "::error::Failed to extract PR URL. Check API response."
-  return 0
+  echo "::warning::Failed to extract PR URL. Check API response."
 fi
 
 echo "PR_URL=$pr_url" | tee -a $GITHUB_ENV

@@ -68,7 +68,7 @@ fi
 
 # Extract unique emails
 commit_emails=$(echo "$commit_data" | awk -F"|" '{print $2}' | sort | uniq)
-echo "Debug: commit_emails = $commit_emails"
+
 # Save commit log to a file
 echo "$commit_log" > commit_log.txt
 
