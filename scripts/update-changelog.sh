@@ -7,8 +7,13 @@ VERSION_LINK="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"
 git fetch origin "$TARGET_BRANCH"
 
 if ! git diff --quiet origin/"$TARGET_BRANCH" -- "$CHANGELOG_FILE_PATH"; then
-  echo "Local CHANGELOG.md is outdated. Pulling latest changes..."
-  git pull origin "$TARGET_BRANCH"
+  echo "Local CHANGELOG.md is outdated."
+  if [ "$DRY_RUN" = "true" ]; then
+    echo "Dry-Run: Skipping 'git pull origin $TARGET_BRANCH'."
+  else
+    echo "Pulling latest changes..."
+    git pull origin "$TARGET_BRANCH"
+  fi
 else
   echo "CHANGELOG.md is up to date."
 fi
@@ -17,8 +22,12 @@ if git diff --quiet -- "$CHANGELOG_FILE_PATH"; then
   echo "No changes in $CHANGELOG_FILE_PATH"
 else
   echo "Saving changes before switching branches..."
-  git add "$CHANGELOG_FILE_PATH"
-  git commit -m "chore: save changelog changes before branch switch"
+  if [ "$DRY_RUN" = "true" ]; then
+    echo "Dry-Run: Skipping 'git add' and 'git commit'."
+  else
+    git add "$CHANGELOG_FILE_PATH"
+    git commit -m "chore: save changelog changes before branch switch"
+  fi
 fi
 
 # Ensure required files exist
@@ -79,16 +88,20 @@ rest=$(awk 'BEGIN {found_unreleased=0; found_first_version=0} \
             /^## \[/{if (found_unreleased && !found_first_version) {found_first_version=1} else if (found_first_version) {print; next} } \
             found_first_version {print}' "$CHANGELOG_FILE_PATH")
 
-{
-  echo "$header"
-  echo ""
-  echo "## [unreleased]"
-  echo ""
-  echo "## [[$VERSION]($VERSION_LINK)] - $(date +'%Y-%m-%d')"
-  echo "$description"
-  echo ""
-  echo "$rest"
-} > "$CHANGELOG_FILE_PATH"
+if [ "$DRY_RUN" = "true" ]; then
+  echo "Dry-Run: Skipping actual changelog update."
+else
+  {
+    echo "$header"
+    echo ""
+    echo "## [unreleased]"
+    echo ""
+    echo "## [[$VERSION]($VERSION_LINK)] - $(date +'%Y-%m-%d')"
+    echo "$description"
+    echo ""
+    echo "$rest"
+  } > "$CHANGELOG_FILE_PATH"
+fi
 
 {
   echo "$description"
