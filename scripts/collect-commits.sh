@@ -81,37 +81,19 @@ for email in $commit_emails; do
     continue
   fi
 
-  response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                  -H "Accept: application/vnd.github+json" \
-                  "$BASE_URL/api/v3/search/users?q=$email") || {
-    echo "::warning:: GitHub API request failed for email $email"
-    continue
-  }
-
-  echo "Debug: GitHub API search response for email $email = $response"
-
-  if ! echo "$response" | jq empty > /dev/null 2>&1; then
-    echo "::error:: Invalid JSON response for email $email: $response"
-    continue
-  fi
-
-  login=$(echo "$response" | jq -r '.items[0].login // empty')
-
-  if [ -z "$login" ] || [ "$login" = "empty" ]; then
-    echo "Debug: No user found via search API. Trying direct user lookup for email: $email"
-
-    user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+  # E-Mail zu GitHub-Login nicht direkt möglich, daher direkt API für User versuchen
+  user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                           -H "Accept: application/vnd.github+json" \
-                          "$BASE_URL/api/v3/users/$email") || {
-      echo "::warning:: GitHub API request failed for direct user lookup: $email"
-      continue
-    }
+                          "$BASE_URL/api/v3/users/$email")
 
-    echo "Debug: GitHub API direct user response for email $email = $user_response"
+  echo "Debug: GitHub API response for email $email = $user_response"
 
-    if echo "$user_response" | jq empty > /dev/null 2>&1; then
-      login=$(echo "$user_response" | jq -r '.login // empty')
-    fi
+  # Prüfen, ob API-Antwort gültig ist
+  if echo "$user_response" | jq empty > /dev/null 2>&1; then
+    login=$(echo "$user_response" | jq -r '.login // empty')
+  else
+    echo "::warning:: No valid GitHub user found for email $email. Skipping..."
+    continue
   fi
 
   if [ -z "$login" ] || [ "$login" = "empty" ]; then
