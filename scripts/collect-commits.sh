@@ -80,7 +80,7 @@ commit_emails=$(echo "$commit_data" | awk -F"|" '{print $2}' | sort | uniq)
 
 # Save commit log to a file
 if [ "$DRY_RUN" = "true" ]; then
-  echo "🟡 Dry-Run: Skipping writing 'commit_log.txt'."
+  echo "Dry-Run: Skipping writing 'commit_log.txt'."
 else
   echo "$commit_log" > commit_log.txt
 fi
@@ -103,41 +103,36 @@ else
     # Query GitHub API for user details
       response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                       -H "Accept: application/vnd.github+json" \
-                      "$BASE_URL/api/v3/search/users?q=$email")
-
-      echo "Debug: GitHub API search response for email $email = $response"
-
-      if ! echo "$response" | jq empty > /dev/null 2>&1; then
-        echo "::error:: Invalid JSON response for email $email: $response"
+                      "$BASE_URL/api/v3/search/users?q=$email") || {
+        echo "::warning:: GitHub API request failed for email $email"
         continue
-      fi
+      }
 
       login=$(echo "$response" | jq -r '.items[0].login // empty')
+      profile_url=$(echo "$response" | jq -r '.items[0].html_url // empty')
+      avatar_url=$(echo "$response" | jq -r '.items[0].avatar_url // empty')
 
-      if [ -z "$login" ] || [ "$login" = "empty" ]; then
-        echo "Debug: No GitHub user found for email $email. Skipping..."
-        continue
-      fi
+      if [ -n "$login" ] && [ "$login" != "empty" ]; then
+        user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                        -H "Accept: application/vnd.github+json" \
+                        "$BASE_URL/api/v3/users/$login") || {
+          echo "::warning:: GitHub user request failed for login $login"
+          continue
+        }
+  
+        full_name=$(echo "$user_response" | jq -r '.name // empty')
 
-      user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                      -H "Accept: application/vnd.github+json" \
-                      "$BASE_URL/api/v3/users/$login")
+        if [ -n "$full_name" ] && [ "$full_name" != "empty" ]; then
+          author_name="$full_name"
+        else
+          author_name="$login"
+        fi
 
-      echo "Debug: GitHub API user response for login $login = $user_response"
-
-      if ! echo "$user_response" | jq empty > /dev/null 2>&1; then
-        echo "::error:: Invalid JSON response for user $login: $user_response"
-        continue
-      fi
-
-      full_name=$(echo "$user_response" | jq -r '.name // empty')
-      profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
-      avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
-
-      if [ -n "$full_name" ] && [ "$full_name" != "empty" ]; then
-        author_name="$full_name"
+        profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
+        avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
       else
-        author_name="$login"
+        echo "::warning:: No GitHub user found for email $email. Skipping..."
+        continue
       fi
 
     if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
