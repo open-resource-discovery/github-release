@@ -81,49 +81,67 @@ for email in $commit_emails; do
     continue
   fi
 
-  # Query GitHub API for user details
-    response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                    -H "Accept: application/vnd.github+json" \
-                    "$BASE_URL/api/v3/search/users?q=$email") || {
-      echo "::warning:: GitHub API request failed for email $email"
+  response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                  -H "Accept: application/vnd.github+json" \
+                  "$BASE_URL/api/v3/search/users?q=$email") || {
+    echo "::warning:: GitHub API request failed for email $email"
+    continue
+  }
+
+  echo "Debug: GitHub API search response for email $email = $response"
+
+  if ! echo "$response" | jq empty > /dev/null 2>&1; then
+    echo "::error:: Invalid JSON response for email $email: $response"
+    continue
+  fi
+
+  login=$(echo "$response" | jq -r '.items[0].login // empty')
+
+  if [ -z "$login" ] || [ "$login" = "empty" ]; then
+    echo "Debug: No user found via search API. Trying direct user lookup for email: $email"
+
+    user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                          -H "Accept: application/vnd.github+json" \
+                          "$BASE_URL/api/v3/users/$email") || {
+      echo "::warning:: GitHub API request failed for direct user lookup: $email"
       continue
     }
-    
-    echo "Debug: GitHub API response for email $email = $response"
 
-    if [ -z "$response" ]; then
-      echo "::error:: GitHub API response for $email is empty."
-      continue
+    echo "Debug: GitHub API direct user response for email $email = $user_response"
+
+    if echo "$user_response" | jq empty > /dev/null 2>&1; then
+      login=$(echo "$user_response" | jq -r '.login // empty')
     fi
+  fi
 
-    login=$(echo "$response" | jq -r '.items[0].login // empty')
-    profile_url=$(echo "$response" | jq -r '.items[0].html_url // empty')
-    avatar_url=$(echo "$response" | jq -r '.items[0].avatar_url // empty')
+  if [ -z "$login" ] || [ "$login" = "empty" ]; then
+    echo "::warning:: No GitHub user found for email $email. Skipping..."
+    continue
+  fi
 
-    echo "Debug: login='$login', profile_url='$profile_url', avatar_url='$avatar_url'"
+  user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                         -H "Accept: application/vnd.github+json" \
+                         "$BASE_URL/api/v3/users/$login") || {
+    echo "::warning:: GitHub API request failed for user $login"
+    continue
+  }
 
-    if [ -n "$login" ] && [ "$login" != "empty" ]; then
-      user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                      -H "Accept: application/vnd.github+json" \
-                      "$BASE_URL/api/v3/users/$login") || {
-        echo "::warning:: GitHub user request failed for login $login"
-        continue
-      }
- 
-      full_name=$(echo "$user_response" | jq -r '.name // empty')
+  echo "Debug: GitHub API user response for login $login = $user_response"
 
-      if [ -n "$full_name" ] && [ "$full_name" != "empty" ]; then
-        author_name="$full_name"
-      else
-        author_name="$login"
-      fi
+  if ! echo "$user_response" | jq empty > /dev/null 2>&1; then
+    echo "::error:: Invalid JSON response for user $login: $user_response"
+    continue
+  fi
 
-      profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
-      avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
-    else
-      echo "::warning:: No GitHub user found for email $email. Skipping..."
-      continue
-    fi
+  full_name=$(echo "$user_response" | jq -r '.name // empty')
+  profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
+  avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
+
+  if [ -z "$full_name" ] || [ "$full_name" = "empty" ]; then
+    full_name="$login"
+  fi
+
+  echo "Debug: Found user '$full_name' with profile $profile_url"
 
   if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
     echo "::warning:: No valid GitHub profile for $email. Skipping..."
@@ -133,8 +151,8 @@ for email in $commit_emails; do
   # Build contributor HTML
   contributor_details="$contributor_details<td align='center'>
       <a href='$profile_url'>
-        <img src='$avatar_url' alt='$author_name' width='50' height='50' style='border-radius: 50%;'><br>
-        <span>$author_name</span>
+        <img src='$avatar_url' alt='$full_name' width='50' height='50' style='border-radius: 50%;'><br>
+        <span>$full_name</span>
       </a>
     </td>"
 done
