@@ -58,23 +58,11 @@ jobs:
       - name: Build
         run: npm run build
 
-  dry-run:
-    name: Dry-Run Release Test
+  github-action-test:
+    name: Github Action Test
     runs-on: ubuntu-latest
-    env:
-      DRY_RUN: "true"
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Install NPM dependencies
-        run: npm ci
-
-      - name: Run Dry-Run Release
+      - name: Run Github Action in dry-run mode
         uses: ./
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          dry-run: true # This enables dry-run mode
+          dry-run: true

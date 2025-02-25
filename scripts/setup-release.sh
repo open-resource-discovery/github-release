@@ -94,7 +94,7 @@ if echo "$release_response" | jq -e '.id' > /dev/null; then
   echo "RELEASE_EXISTS=true" | tee -a $GITHUB_ENV
   export RELEASE_EXISTS=true
   if [ "$DRY_RUN" = "true" ]; then
-    echo "Dry-Run: Skipping early exit."
+    echo "Dry-Run: Skipping early exit if release exists."
   else
     exit 1
   fi

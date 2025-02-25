@@ -103,36 +103,41 @@ else
     # Query GitHub API for user details
       response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                       -H "Accept: application/vnd.github+json" \
-                      "$BASE_URL/api/v3/search/users?q=$email") || {
-        echo "::warning:: GitHub API request failed for email $email"
+                      "$BASE_URL/api/v3/search/users?q=$email")
+
+      echo "Debug: GitHub API search response for email $email = $response"
+
+      if ! echo "$response" | jq empty > /dev/null 2>&1; then
+        echo "::error:: Invalid JSON response for email $email: $response"
         continue
-      }
+      fi
 
       login=$(echo "$response" | jq -r '.items[0].login // empty')
-      profile_url=$(echo "$response" | jq -r '.items[0].html_url // empty')
-      avatar_url=$(echo "$response" | jq -r '.items[0].avatar_url // empty')
 
-      if [ -n "$login" ] && [ "$login" != "empty" ]; then
-        user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                        -H "Accept: application/vnd.github+json" \
-                        "$BASE_URL/api/v3/users/$login") || {
-          echo "::warning:: GitHub user request failed for login $login"
-          continue
-        }
-  
-        full_name=$(echo "$user_response" | jq -r '.name // empty')
-
-        if [ -n "$full_name" ] && [ "$full_name" != "empty" ]; then
-          author_name="$full_name"
-        else
-          author_name="$login"
-        fi
-
-        profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
-        avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
-      else
-        echo "::warning:: No GitHub user found for email $email. Skipping..."
+      if [ -z "$login" ] || [ "$login" = "empty" ]; then
+        echo "Debug: No GitHub user found for email $email. Skipping..."
         continue
+      fi
+
+      user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                      -H "Accept: application/vnd.github+json" \
+                      "$BASE_URL/api/v3/users/$login")
+
+      echo "Debug: GitHub API user response for login $login = $user_response"
+
+      if ! echo "$user_response" | jq empty > /dev/null 2>&1; then
+        echo "::error:: Invalid JSON response for user $login: $user_response"
+        continue
+      fi
+
+      full_name=$(echo "$user_response" | jq -r '.name // empty')
+      profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
+      avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
+
+      if [ -n "$full_name" ] && [ "$full_name" != "empty" ]; then
+        author_name="$full_name"
+      else
+        author_name="$login"
       fi
 
     if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
