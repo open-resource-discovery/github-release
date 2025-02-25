@@ -25,10 +25,15 @@ export RELEASE_TITLE_PREFIX="$(printenv INPUT_RELEASE-TITLE-PREFIX)"
 echo "RELEASE_TITLE_PREFIX=$(printenv INPUT_RELEASE-TITLE-PREFIX)" | tee -a "$GITHUB_ENV"
 
 # Import scripts instead of executing them with sh
+echo "setup-release"
 . /app/scripts/setup-release.sh
+echo "collect-commits"
 . /app/scripts/collect-commits.sh
+echo "update-changelog"
 . /app/scripts/update-changelog.sh
+echo "create-pr"
 . /app/scripts/create-pr.sh
+echo "create-release"
 . /app/scripts/create-release.sh
 
 echo "GitHub Action execution completed."

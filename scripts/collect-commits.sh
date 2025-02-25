@@ -88,10 +88,19 @@ for email in $commit_emails; do
       echo "::warning:: GitHub API request failed for email $email"
       continue
     }
+    
+    echo "Debug: GitHub API response for email $email = $response"
+
+    if [ -z "$response" ]; then
+      echo "::error:: GitHub API response for $email is empty."
+      continue
+    fi
 
     login=$(echo "$response" | jq -r '.items[0].login // empty')
     profile_url=$(echo "$response" | jq -r '.items[0].html_url // empty')
     avatar_url=$(echo "$response" | jq -r '.items[0].avatar_url // empty')
+
+    echo "Debug: login='$login', profile_url='$profile_url', avatar_url='$avatar_url'"
 
     if [ -n "$login" ] && [ "$login" != "empty" ]; then
       user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
