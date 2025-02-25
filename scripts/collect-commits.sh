@@ -81,14 +81,12 @@ for email in $commit_emails; do
     continue
   fi
 
-  # E-Mail zu GitHub-Login nicht direkt möglich, daher direkt API für User versuchen
   user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                           -H "Accept: application/vnd.github+json" \
                           "$BASE_URL/api/v3/users/$email")
 
   echo "Debug: GitHub API response for email $email = $user_response"
 
-  # Prüfen, ob API-Antwort gültig ist
   if echo "$user_response" | jq empty > /dev/null 2>&1; then
     login=$(echo "$user_response" | jq -r '.login // empty')
   else
