@@ -14,9 +14,18 @@ fi
 echo "Creating or updating release for tag: $TAG"
 
 # Run the Node.js release script
-env TAG="$TAG" TARGET_BRANCH="$TARGET_BRANCH" RELEASE_TITLE="$RELEASE_TITLE" \
-    RELEASE_BODY="$(cat changelog_content.txt)" RELEASE_DRAFT="$RELEASE_DRAFT" \
-    RELEASE_PRERELEASE="$RELEASE_PRERELEASE" node /app/dist/src/release.js
+if [ "$DRY_RUN" = "true" ]; then
+  echo "Dry-Run: Skipping execution of 'node /app/dist/src/release.js'."
+  echo "Would have executed with:"
+  echo "  env TAG=\"$TAG\" TARGET_BRANCH=\"$TARGET_BRANCH\" RELEASE_TITLE=\"$RELEASE_TITLE\" \\"
+  echo "  RELEASE_BODY=\"$(cat changelog_content.txt)\" RELEASE_DRAFT=\"$RELEASE_DRAFT\" \\"
+  echo "  RELEASE_PRERELEASE=\"$RELEASE_PRERELEASE\" node /app/dist/src/release.js"
+else
+  # Run the Node.js release script
+  env TAG="$TAG" TARGET_BRANCH="$TARGET_BRANCH" RELEASE_TITLE="$RELEASE_TITLE" \
+      RELEASE_BODY="$(cat changelog_content.txt)" RELEASE_DRAFT="$RELEASE_DRAFT" \
+      RELEASE_PRERELEASE="$RELEASE_PRERELEASE" node /app/dist/src/release.js
+fi
     
 echo "Release process completed."
 

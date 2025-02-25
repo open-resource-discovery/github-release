@@ -15,7 +15,11 @@ CUSTOM_TAG="${CUSTOM_TAG:-}"
 if [ ! -f "$CHANGELOG_FILE_PATH" ]; then
   echo "File not found: $CHANGELOG_FILE_PATH"
   echo "Creating a default changelog file..."
-  echo "## [unreleased]\n\n### Added\n- Placeholder changelog" > "$CHANGELOG_FILE_PATH"
+  if [ "$DRY_RUN" = "true" ]; then
+    echo "Dry-Run: Skipping file creation."
+  else
+    echo "## [unreleased]\n\n### Added\n- Placeholder changelog" > "$CHANGELOG_FILE_PATH"
+  fi
 fi
 
 # Determine the version and tag
@@ -65,7 +69,11 @@ else
 fi
 
 # Fetch all git tags
-git fetch --tags
+if [ "$DRY_RUN" = "true" ]; then
+  echo "Dry-Run: Skipping 'git fetch --tags'."
+else
+  git fetch --tags
+fi
 
 # Check if a release already exists for the tag
 if [ "$TAG_EXISTS" = "false" ]; then
@@ -85,7 +93,11 @@ if echo "$release_response" | jq -e '.id' > /dev/null; then
   echo "Release for tag $TAG already exists."
   echo "RELEASE_EXISTS=true" | tee -a $GITHUB_ENV
   export RELEASE_EXISTS=true
-  exit 1
+  if [ "$DRY_RUN" = "true" ]; then
+    echo "Dry-Run: Skipping early exit if release exists."
+  else
+    exit 1
+  fi
 else
   echo "No release exists for tag $TAG."
   echo "RELEASE_EXISTS=false" | tee -a $GITHUB_ENV
