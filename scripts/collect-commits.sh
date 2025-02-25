@@ -81,42 +81,62 @@ for email in $commit_emails; do
     continue
   fi
 
-  user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                          -H "Accept: application/vnd.github+json" \
-                          "$BASE_URL/api/v3/users/$email")
+  response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                  -H "Accept: application/vnd.github+json" \
+                  "$BASE_URL/api/v3/search/users?q=$email")
 
-  echo "Debug: GitHub API response for email $email = $user_response"
+  echo "Debug: GitHub API search response for email $email = $response"
 
-  if echo "$user_response" | jq empty > /dev/null 2>&1; then
-    login=$(echo "$user_response" | jq -r '.login // empty')
-  else
-    echo "::warning:: No valid GitHub user found for email $email. Skipping..."
-    continue
+  if echo "$response" | jq empty > /dev/null 2>&1; then
+    login=$(echo "$response" | jq -r '.items[0].login // empty')
   fi
 
   if [ -z "$login" ] || [ "$login" = "empty" ]; then
-    echo "::warning:: No GitHub user found for email $email. Skipping..."
+    echo "Debug: No user found via search API. Trying direct lookup for email: $email"
+
+    user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                          -H "Accept: application/vnd.github+json" \
+                          "$BASE_URL/api/v3/users/$email")
+
+    echo "Debug: GitHub API direct user response for email $email = $user_response"
+
+    if echo "$user_response" | jq empty > /dev/null 2>&1; then
+      login=$(echo "$user_response" | jq -r '.login // empty')
+    fi
+  fi
+
+  if [ -z "$login" ] || [ "$login" = "empty" ]; then
+    echo "Debug: No user found for email $email. Trying fallback API /users/{username}"
+
+    fallback_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                               -H "Accept: application/vnd.github+json" \
+                               "https://api.github.com/users/$email")
+
+    echo "Debug: GitHub API fallback response for email $email = $fallback_response"
+
+    if echo "$fallback_response" | jq empty > /dev/null 2>&1; then
+      login=$(echo "$fallback_response" | jq -r '.login // empty')
+    fi
+  fi
+
+  if [ -z "$login" ] || [ "$login" = "empty" ]; then
+    echo "::warning:: No valid GitHub user found for email $email. Skipping..."
     continue
   fi
 
   user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                          -H "Accept: application/vnd.github+json" \
-                         "$BASE_URL/api/v3/users/$login") || {
-    echo "::warning:: GitHub API request failed for user $login"
-    continue
-  }
+                         "$BASE_URL/api/v3/users/$login")
 
   echo "Debug: GitHub API user response for login $login = $user_response"
 
-  if ! echo "$user_response" | jq empty > /dev/null 2>&1; then
-    echo "::error:: Invalid JSON response for user $login: $user_response"
-    continue
+  if echo "$user_response" | jq empty > /dev/null 2>&1; then
+    full_name=$(echo "$user_response" | jq -r '.name // empty')
+    profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
+    avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
   fi
 
-  full_name=$(echo "$user_response" | jq -r '.name // empty')
-  profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
-  avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
-
+  # Falls kein Name gefunden wurde, nutze den Login-Namen
   if [ -z "$full_name" ] || [ "$full_name" = "empty" ]; then
     full_name="$login"
   fi
@@ -141,3 +161,4 @@ contributor_details="$contributor_details</tr></table>"
 
 # Save contributors to a file
 echo "$contributor_details" > contributors.txt
+
