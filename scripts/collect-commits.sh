@@ -66,23 +66,23 @@ if [ $log_status -ne 0 ]; then
   return 0
 fi
 
-# Extract unique contributor names and emails
-commit_emails=$(echo "$commit_data" | awk -F"|" '{print $2}' | sort | uniq)
-commit_names=$(echo "$commit_data" | awk -F"|" '{print $1}' | sort | uniq)
+# Extract unique contributor emails and commit hashes
+commit_emails=$(echo "$commit_data" | awk -F"|" '{print $3}' | sort | uniq)
+commit_hashes=$(echo "$commit_data" | awk -F"|" '{print $1}' | sort | uniq)
 
 # Save commit log to a file
 echo "$commit_log" > commit_log.txt
 
 # Prepare contributors list with profile pictures
 contributor_details="<table><tr>"
-for email in $commit_emails; do
 
+for email in $commit_emails; do
   if echo "$email" | grep -q '\[bot\]'; then
     echo "::warning:: Skipping bot user: $email"
     continue
   fi
 
-  # Try searching GitHub user by email
+  # Step 1: Try finding the GitHub user by email
   response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                   -H "Accept: application/vnd.github+json" \
                   "$BASE_URL/api/v3/search/users?q=$email")
@@ -93,27 +93,34 @@ for email in $commit_emails; do
     login=$(echo "$response" | jq -r '.items[0].login // empty')
   fi
 
-  # If email search fails, try searching by name
+  # Step 2: If email lookup fails, try using commit data
   if [ -z "$login" ] || [ "$login" = "empty" ]; then
-    commit_name=$(echo "$commit_data" | grep "$email" | awk -F"|" '{print $1}')
-    echo "Debug: No user found for email $email. Trying search by name: $commit_name"
+    commit_sha=$(echo "$commit_data" | grep "$email" | awk -F"|" '{print $1}' | head -n1)
 
-    name_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                        -H "Accept: application/vnd.github+json" \
-                        "$BASE_URL/api/v3/search/users?q=$commit_name")
+    if [ -n "$commit_sha" ]; then
+      echo "Debug: No user found for email $email. Trying commit lookup with SHA: $commit_sha"
 
-    echo "Debug: GitHub API search response for name $commit_name = $name_response"
+      commit_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                              -H "Accept: application/vnd.github+json" \
+                              "$BASE_URL/api/v3/repos/$REPO/commits/$commit_sha")
 
-    if echo "$name_response" | jq empty > /dev/null 2>&1; then
-      login=$(echo "$name_response" | jq -r '.items[0].login // empty')
+      echo "Debug: GitHub API commit response for SHA $commit_sha = $commit_response"
+
+      if echo "$commit_response" | jq empty > /dev/null 2>&1; then
+        login=$(echo "$commit_response" | jq -r '.author.login // empty')
+      fi
+    else
+      echo "Debug: No commit SHA found for email $email. Skipping commit lookup."
     fi
   fi
 
+  # Step 3: Final check
   if [ -z "$login" ] || [ "$login" = "empty" ]; then
-    echo "::warning:: No valid GitHub user found for email $email or name $commit_name. Skipping..."
+    echo "::warning:: No valid GitHub user found for email $email or commit lookup. Skipping..."
     continue
   fi
 
+  # Fetch GitHub user details
   user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                          -H "Accept: application/vnd.github+json" \
                          "$BASE_URL/api/v3/users/$login")
