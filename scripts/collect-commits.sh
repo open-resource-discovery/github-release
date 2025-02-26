@@ -47,7 +47,7 @@ if [ -z "$commit_range" ]; then
 fi
 
 # Collect commit log and contributors
-commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%an|%ae") || { echo "::error:: commit data failed"; return 0; }
+commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%h|%an|%ae") || { echo "::error:: commit data failed"; return 0; }
 if [ -z "$commit_data" ]; then
   echo "No commits found in the specified range."   
   commit_log="* No changes since last release."
