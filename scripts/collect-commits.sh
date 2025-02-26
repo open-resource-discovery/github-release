@@ -67,23 +67,10 @@ if [ $log_status -ne 0 ]; then
   return 0
 fi
 
-echo "=== DEBUG: Commit-Daten ==="
-echo "$commit_data"
-echo "==========================="
-
 # Extract unique contributor emails and commit hashes
 commit_emails=$(echo "$commit_data" | awk -F"|" '{print $3}' | sort | uniq)
 commit_hashes=$(echo "$commit_data" | awk -F"|" '{print $1}' | sort | uniq)
-commit_cEmails=$(echo "$commit_data" | awk -F"|" '{print $4}' | sort | uniq)
-commit_cName=$(echo "$commit_data" | awk -F"|" '{print $5}' | sort | uniq)
 
-echo "=== DEBUG: Eindeutige Commit-cEmails ==="
-echo "$commit_cEmails"
-echo "======================================="
-
-echo "=== DEBUG: Eindeutige cName==="
-echo "$commit_cName"
-echo "========================================="
 
 # Save commit log to a file
 echo "$commit_log" > commit_log.txt
@@ -123,6 +110,7 @@ for email in $commit_emails; do
 
       if echo "$commit_response" | jq empty > /dev/null 2>&1; then
         login=$(echo "$commit_response" | jq -r '.author.login // empty')
+         echo "Debug: login : $login."
       fi
     else
       echo "Debug: No commit SHA found for email $email. Skipping commit lookup."
@@ -138,7 +126,7 @@ for email in $commit_emails; do
   # Fetch GitHub user details
   user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                          -H "Accept: application/vnd.github+json" \
-                         "$BASE_URL/api/v3/users/$login")
+                         "$BASE_API_URL/users/$login")
 
   echo "Debug: GitHub API user response for login $login = $user_response"
 
