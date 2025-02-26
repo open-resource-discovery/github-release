@@ -62,6 +62,7 @@ jobs:
     name: Github Action Test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - name: Run Github Action in dry-run mode
         uses: ./
         with:
