@@ -66,9 +66,21 @@ if [ $log_status -ne 0 ]; then
   return 0
 fi
 
+echo "=== DEBUG: Commit-Daten ==="
+echo "$commit_data"
+echo "==========================="
+
 # Extract unique contributor emails and commit hashes
 commit_emails=$(echo "$commit_data" | awk -F"|" '{print $3}' | sort | uniq)
 commit_hashes=$(echo "$commit_data" | awk -F"|" '{print $1}' | sort | uniq)
+
+echo "=== DEBUG: Eindeutige Commit-Hashes ==="
+echo "$commit_hashes"
+echo "======================================="
+
+echo "=== DEBUG: Eindeutige E-Mail-Adressen ==="
+echo "$commit_emails"
+echo "========================================="
 
 # Save commit log to a file
 echo "$commit_log" > commit_log.txt
