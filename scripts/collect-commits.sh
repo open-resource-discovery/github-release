@@ -47,7 +47,7 @@ if [ -z "$commit_range" ]; then
 fi
 
 # Collect commit log and contributors
-commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%h|%an|%ae") || { echo "::error:: commit data failed"; return 0; }
+commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%h|%an|%ae|%ce|%cn") || { echo "::error:: commit data failed"; return 0; }
 if [ -z "$commit_data" ]; then
   echo "No commits found in the specified range."   
   commit_log="* No changes since last release."
@@ -73,13 +73,15 @@ echo "==========================="
 # Extract unique contributor emails and commit hashes
 commit_emails=$(echo "$commit_data" | awk -F"|" '{print $3}' | sort | uniq)
 commit_hashes=$(echo "$commit_data" | awk -F"|" '{print $1}' | sort | uniq)
+commit_cEmails=$(echo "$commit_data" | awk -F"|" '{print $4}' | sort | uniq)
+commit_cName=$(echo "$commit_data" | awk -F"|" '{print $5}' | sort | uniq)
 
-echo "=== DEBUG: Eindeutige Commit-Hashes ==="
-echo "$commit_hashes"
+echo "=== DEBUG: Eindeutige Commit-cEmails ==="
+echo "$commit_cEmails"
 echo "======================================="
 
-echo "=== DEBUG: Eindeutige E-Mail-Adressen ==="
-echo "$commit_emails"
+echo "=== DEBUG: Eindeutige cName==="
+echo "$commit_cName"
 echo "========================================="
 
 # Save commit log to a file
