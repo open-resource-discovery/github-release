@@ -3,6 +3,7 @@ set -e  # Stop the script if any command fails
 
 # Define variables
 BASE_URL="$GITHUB_SERVER_URL"
+BASE_API_URL="$GITHUB_API_URL"
 REPO="$GITHUB_REPOSITORY"
 
 git fetch origin "$TARGET_BRANCH"
@@ -99,7 +100,7 @@ for email in $commit_emails; do
   # Step 1: Try finding the GitHub user by email
   response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                   -H "Accept: application/vnd.github+json" \
-                  "$BASE_URL/api/v3/search/users?q=$email")
+                  "$BASE_API_URL/search/users?q=$email")
 
   echo "Debug: GitHub API search response for email $email = $response"
 
@@ -116,7 +117,7 @@ for email in $commit_emails; do
 
       commit_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                               -H "Accept: application/vnd.github+json" \
-                              "$BASE_URL/api/v3/repos/$REPO/commits/$commit_sha")
+                              "$BASE_API_URL/repos/$REPO/commits/$commit_sha")
 
       echo "Debug: GitHub API commit response for SHA $commit_sha = $commit_response"
 
