@@ -56,10 +56,12 @@ else
     -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Accept: application/vnd.github+json" \
     -d "{\"title\":\"$pr_title\",\"head\":\"$branch_name\",\"base\":\"$TARGET_BRANCH\",\"body\":\"$pr_body\"}" \
-    "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls") || {
-      echo "::error:: Failed to create a pull request"
-      exit 1
-    }
+    "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls")
+
+  if ! echo "$response" | jq empty > /dev/null 2>&1; then
+    echo "::error:: Invalid GitHub API response: $response"
+    exit 1
+  fi
 
   pr_url=$(echo "$response" | jq -r '.html_url // empty')
 
