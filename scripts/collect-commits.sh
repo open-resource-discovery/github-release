@@ -85,19 +85,16 @@ for email in $commit_emails; do
   commit_sha=$(echo "$commit_data" | grep "$email" | awk -F"|" '{print $1}' | head -n1)
 
   if [ -n "$commit_sha" ]; then
-    echo "Debug: No user found for email $email. Trying commit lookup with SHA: $commit_sha"
 
     commit_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
                             -H "Accept: application/vnd.github+json" \
                             "$BASE_API_URL/repos/$REPO/commits/$commit_sha")
 
-    echo "Debug: GitHub API commit response for SHA $commit_sha = $commit_response"
-
     if echo "$commit_response" | jq empty > /dev/null 2>&1; then
       login=$(echo "$commit_response" | jq -r '.author.login // empty')
     fi
   else
-    echo "Debug: No commit SHA found for email $email. Skipping commit lookup."
+    echo "::warning:: No commit SHA found for email $email. Skipping commit lookup."
   fi
 
   # Step 3: Final check
@@ -111,7 +108,6 @@ for email in $commit_emails; do
                          -H "Accept: application/vnd.github+json" \
                          "$BASE_API_URL/users/$login")
 
-  echo "Debug: GitHub API user response for login $login = $user_response"
 
   if echo "$user_response" | jq empty > /dev/null 2>&1; then
     full_name=$(echo "$user_response" | jq -r '.name // empty')
@@ -123,8 +119,6 @@ for email in $commit_emails; do
   if [ -z "$full_name" ] || [ "$full_name" = "empty" ]; then
     full_name="$login"
   fi
-
-  echo "Debug: Found user '$full_name' with profile $profile_url"
 
   if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
     echo "::warning:: No valid GitHub profile for $email. Skipping..."
