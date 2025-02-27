@@ -57,3 +57,13 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  github-action-test:
+    name: Github Action Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run Github Action in dry-run mode
+        uses: ./
+        with:
+          dry-run: true

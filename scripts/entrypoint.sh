@@ -3,6 +3,9 @@ set -e  # Stop script execution on any error
 
 echo "Starting GitHub Action inside Docker container..."
 
+export DRY_RUN="$(printenv INPUT_DRY-RUN)"
+echo "DRY_RUN=$(printenv INPUT_DRY-RUN)" | tee -a "$GITHUB_ENV"
+
 export CHANGELOG_FILE_PATH="$(printenv INPUT_CHANGELOG-FILE-PATH)"
 echo "CHANGELOG_FILE_PATH=$(printenv INPUT_CHANGELOG-FILE-PATH)" | tee -a "$GITHUB_ENV"
 
