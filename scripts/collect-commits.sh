@@ -15,7 +15,11 @@ if [ "$RELEASE_EXISTS" = "true" ]; then
 fi
 
 # Fetch all git tags
-git fetch --tags || { echo "::error:: Failed to fetch git tags"; return 0; }
+if [ "$DRY_RUN" = "true" ]; then
+  echo "Dry-Run: Skipping 'git fetch --tags'."
+else
+  git fetch --tags || { echo "::error:: Failed to fetch git tags"; return 0; }
+fi
 
 # Sort tags by creation date
 sorted_tags=$(git for-each-ref --sort=creatordate --format='%(refname:short)' refs/tags) || { echo "::error:: Failed Sort tags by creation date"; return 0; }
@@ -52,8 +56,13 @@ commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%h|%an|%ae
 if [ -z "$commit_data" ]; then
   echo "No commits found in the specified range."   
   commit_log="* No changes since last release."
-  echo "$commit_log" > commit_log.txt
-  echo "<table><tr><td>No contributors found</td></tr></table>" > contributors.txt
+
+  if [ "$DRY_RUN" = "true" ]; then
+    echo "Dry-Run: Skipping writing 'commit_log.txt' and 'contributors.txt'."
+  else
+    echo "$commit_log" > commit_log.txt
+    echo "<table><tr><td>No contributors found</td></tr></table>" > contributors.txt
+  fi
   return 0
 fi
 
@@ -71,16 +80,26 @@ fi
 commit_emails=$(echo "$commit_data" | awk -F"|" '{print $3}' | sort | uniq)
 
 # Save commit log to a file
-echo "$commit_log" > commit_log.txt
+if [ "$DRY_RUN" = "true" ]; then
+  echo "Dry-Run: Skipping writing 'commit_log.txt'."
+else
+  echo "$commit_log" > commit_log.txt
+fi
 
-# Prepare contributors list with profile pictures
-contributor_details="<table><tr>"
+# Skip contributor collection in dry-run mode
+if [ "$DRY_RUN" = "true" ]; then
+  echo "Dry-Run: Skipping contributor collection."
+  contributor_details="<table><tr><td>Dry-Run: Contributor collection skipped</td></tr></table>"
+else
 
-for email in $commit_emails; do
-  if echo "$email" | grep -q '\[bot\]'; then
-    echo "::warning:: Skipping bot user: $email"
-    continue
-  fi
+  # Prepare contributors list with profile pictures
+  contributor_details="<table><tr>"
+  for email in $commit_emails; do
+
+    if echo "$email" | grep -q '\[bot\]'; then
+      echo "::warning:: Skipping bot user: $email"
+      continue
+    fi
 
   commit_sha=$(echo "$commit_data" | grep "$email" | awk -F"|" '{print $1}' | head -n1)
 
@@ -120,10 +139,10 @@ for email in $commit_emails; do
     full_name="$login"
   fi
 
-  if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
-    echo "::warning:: No valid GitHub profile for $email. Skipping..."
-    continue
-  fi
+    if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
+      echo "::warning:: No valid GitHub profile for $email. Skipping..."
+      continue
+    fi
 
   # Build contributor HTML
   contributor_details="$contributor_details<td align='center'>
@@ -134,7 +153,13 @@ for email in $commit_emails; do
     </td>"
 done
 
-contributor_details="$contributor_details</tr></table>"
+  contributor_details="$contributor_details</tr></table>"
+fi
 
 # Save contributors to a file
-echo "$contributor_details" > contributors.txt
+if [ "$DRY_RUN" = "true" ]; then
+  echo "Dry-Run: Skipping writing 'contributors.txt'."
+  echo "$contributor_details" > contributors.txt
+else
+  echo "$contributor_details" > contributors.txt
+fi

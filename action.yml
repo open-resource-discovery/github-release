@@ -10,6 +10,10 @@ inputs:
     required: false
     description: "GitHub Token for authentication."
     default: ${{ github.token }}
+  dry-run:
+    required: false
+    description: "Enable dry-run mode (does not actually create a release)"
+    default: "false"
   release-draft:
     description: "Mark release as draft."
     required: false
