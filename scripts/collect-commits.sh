@@ -48,7 +48,7 @@ if [ -z "$commit_range" ]; then
 fi
 
 # Collect commit log and contributors
-commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%h|%an|%ae|%ce|%cn") || { echo "::error:: commit data failed"; return 0; }
+commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%h|%an|%ae") || { echo "::error:: commit data failed"; return 0; }
 if [ -z "$commit_data" ]; then
   echo "No commits found in the specified range."   
   commit_log="* No changes since last release."
@@ -70,14 +70,13 @@ fi
 # Extract unique contributor emails and commit hashes
 commit_emails=$(echo "$commit_data" | awk -F"|" '{print $3}' | sort | uniq)
 
-
 # Save commit log to a file
 echo "$commit_log" > commit_log.txt
 
 # Prepare contributors list with profile pictures
 contributor_details="<table><tr>"
 
-for   in $commit_emails; do
+for email in $commit_emails; do
   if echo "$email" | grep -q '\[bot\]'; then
     echo "::warning:: Skipping bot user: $email"
     continue
