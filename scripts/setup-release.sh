@@ -35,10 +35,21 @@ if [ -z "$version" ] || [ "$version" = "null" ]; then
   exit 1
 fi
 
+# Determine tag based on priority
 if [ -n "$CUSTOM_TAG" ]; then
-  tag="$CUSTOM_TAG"
+  tag="$CUSTOM_TAG"  # Use manually specified custom tag
+  echo "Using custom tag: $tag"
 else
-  tag="ms/$version"
+  # Detect previous tags with 'ms/' prefix
+  latest_tag=$(git tag --list --sort=-version:refname | grep -E '^ms/' | head -n 1)
+
+  if [ -n "$latest_tag" ]; then
+    tag="ms/$version"  # Continue using 'ms/' if previous tags exist
+    echo "Detected previous ms/ tags. Using: $tag"
+  else
+    tag="v$version"  # Default to 'v<version>' if no 'ms/' tags exist
+    echo "No ms/ tags found. Using default: $tag"
+  fi
 fi
 
 # Set RELEASE_TITLE
