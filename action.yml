@@ -26,8 +26,8 @@ inputs:
     description: "Prefix for release title."
     required: false
     default: ""
-  custom-tag:
-    description: "Custom tag for the release. If empty, 'v{version}' is used."
+  tag-template:
+    description: "Custom template for tag naming (e.g., 'ms/<version>'). If empty, auto-detection is used."
     required: false
     default: ""
   fallback-version:

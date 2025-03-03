@@ -9,7 +9,7 @@ git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 FALLBACK_VERSION="${FALLBACK_VERSION:-}"
-CUSTOM_TAG="${CUSTOM_TAG:-}"
+TAG_TEMPLATE="${TAG_TEMPLATE:-}"
 
 # Check if the changelog file exists
 if [ ! -f "$CHANGELOG_FILE_PATH" ]; then
@@ -36,9 +36,9 @@ if [ -z "$version" ] || [ "$version" = "null" ]; then
 fi
 
 # Determine tag based on priority
-if [ -n "$CUSTOM_TAG" ]; then
-  tag="$CUSTOM_TAG"  # Use manually specified custom tag
-  echo "Using custom tag: $tag"
+if [ -n "$TAG_TEMPLATE" ]; then
+  tag=$(echo "$TAG_TEMPLATE" | sed "s/<version>/$version/")  # Use configured template
+  echo "Using tag from template: $tag"
 else
   # Detect previous tags with 'ms/' prefix
   latest_tag=$(git tag --list --sort=-version:refname | grep -E '^ms/' | head -n 1)
@@ -115,13 +115,16 @@ else
   export RELEASE_EXISTS=false
 fi
 
-# Detect the latest tag
-latest_tag=$(git tag --list "ms/*" --sort=-version:refname | head -n 1)
+if [ -n "$TAG_TEMPLATE" ]; then
+  latest_tag=$(git tag --list --sort=-version:refname | grep -E "$(echo "$TAG_TEMPLATE" | sed 's/<version>//')" | head -n 1)
+else
+  # Automatically detect prefix (ms/ or v/)
+  latest_tag=$(git tag --list --sort=-version:refname | grep -E '^ms/' | head -n 1)
 
-# If no prefixed tags exist, fall back to non-prefixed tags
-if [ -z "$latest_tag" ]; then
-  echo "No ms/* tags found. Falling back to non-prefixed tags."
-  latest_tag=$(git describe --tags --abbrev=0 || echo "")
+  if [ -z "$latest_tag" ]; then
+    echo "No ms/* tags found. Falling back to non-prefixed tags."
+    latest_tag=$(git describe --tags --abbrev=0 || echo "")
+  fi
 fi
 
 if [ -z "$latest_tag" ]; then

@@ -9,8 +9,8 @@ echo "DRY_RUN=$(printenv INPUT_DRY-RUN)" | tee -a "$GITHUB_ENV"
 export CHANGELOG_FILE_PATH="$(printenv INPUT_CHANGELOG-FILE-PATH)"
 echo "CHANGELOG_FILE_PATH=$(printenv INPUT_CHANGELOG-FILE-PATH)" | tee -a "$GITHUB_ENV"
 
-export CUSTOM_TAG="$(printenv INPUT_CUSTOM-TAG)"
-echo "CUSTOM_TAG=$(printenv INPUT_CUSTOM-TAG)" | tee -a "$GITHUB_ENV"
+export TAG_TEMPLATE="$(printenv INPUT_TAG-TEMPLATE)"
+echo "TAG_TEMPLATE=$TAG_TEMPLATE" | tee -a "$GITHUB_ENV"
 
 export FALLBACK_VERSION="$(printenv INPUT_FALLBACK-VERSION)"
 echo "FALLBACK_VERSION=$(printenv INPUT_FALLBACK-VERSION)" | tee -a "$GITHUB_ENV"
