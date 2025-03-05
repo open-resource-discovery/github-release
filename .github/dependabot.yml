@@ -1,0 +1,55 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 20
+    labels:
+      - "dependencies"
+      - "dependabot"
+    groups:
+      github-actions:
+        patterns:
+          - "@actions/*"
+      typescript-build-tools:
+        patterns:
+          - "typescript"
+          - "ts-jest"
+          - "@tsconfig/node22"
+          - "tsx"
+      linting-tools:
+        patterns:
+          - "eslint"
+          - "@sap/eslint-config"
+          - "prettier"
+      testing-frameworks:
+        patterns:
+          - "jest"
+          - "@jest/globals"
+          - "@types/jest"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    reviewers:
+      - "dependabot[bot]"
+
+  # Dockerfile-Dependencies
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+      time: "06:00"
+      timezone: "Europe/Berlin"
+    labels:
+      - "dependencies"
+      - "dependabot"
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+    reviewers:
+      - "dependabot[bot]"
