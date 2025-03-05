@@ -31,9 +31,6 @@ updates:
           - "jest"
           - "@jest/globals"
           - "@types/jest"
-    ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
     reviewers:
       - "dependabot[bot]"
 
