@@ -1,6 +1,5 @@
 import { getOctokit, context } from "@actions/github";
 import * as fs from "fs";
-import { execSync } from "child_process";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export async function createRelease(): Promise<string> {
@@ -15,21 +14,38 @@ export async function createRelease(): Promise<string> {
     if (!tag_name) throw new Error("Tag name is required but not set.");
 
     const target_commitish = process.env.TARGET_BRANCH || "main";
-    const name = `${process.env.RELEASE_TITLE || tag_name}`; // Leerzeichen vorne und hinten
+    const name = ` ${process.env.RELEASE_TITLE || tag_name} `; // Leerzeichen vorne und hinten
     const body = process.env.RELEASE_BODY || "";
     const draft = process.env.RELEASE_DRAFT === "true";
     const prerelease = process.env.RELEASE_PRERELEASE === "true";
+    const actor = process.env.GITHUB_ACTOR || "unknown-actor";
 
-    const actor = process.env.GITHUB_ACTOR || "unknown-actor"; // Force actor
+    process.stdout.write(`Creating issue to switch context to ${actor}\n`);
+
+    // 🚀 Workaround: Erstelle einen Issue, um den `GITHUB_ACTOR` zu aktivieren
+    const issue = await octokit.rest.issues.create({
+      owner,
+      repo,
+      title: "Temporary Issue to Set Release Creator",
+      body: "This issue is created to switch context to the correct actor.",
+    });
+
+    // Warte kurz, um sicherzustellen, dass der Issue erfasst wurde
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // 🚀 Schließe den Issue wieder als `GITHUB_ACTOR`
+    await octokit.rest.issues.update({
+      owner,
+      repo,
+      issue_number: issue.data.number,
+      state: "closed",
+    });
 
     process.stdout.write(
-      `Creating release for tag: ${tag_name} in ${owner}/${repo} by ${actor}\n`,
+      `Issue #${issue.data.number} closed by ${actor}. Proceeding with release.\n`,
     );
 
-    pushTagWithActor(tag_name, actor);
-
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-
+    // 🚀 Jetzt erstelle das Release
     const release = await octokit.rest.repos.createRelease({
       owner,
       repo,
@@ -40,25 +56,6 @@ export async function createRelease(): Promise<string> {
       draft,
       prerelease,
     });
-
-    await octokit.rest.repos.updateRelease({
-      owner,
-      repo,
-      release_id: release.data.id,
-      name,
-      body,
-    });
-
-    // 🔍 Debugging: Creator prüfen
-    const releaseDetails = await octokit.rest.repos.getRelease({
-      owner,
-      repo,
-      release_id: release.data.id,
-    });
-
-    process.stderr.write(
-      `Release created by: ${releaseDetails.data.author?.login}`,
-    );
 
     const githubOutput = process.env.GITHUB_OUTPUT;
     if (githubOutput) {
@@ -73,21 +70,6 @@ export async function createRelease(): Promise<string> {
     process.stderr.write(`Error creating release: ${errorMessage}\n`);
     process.exit(1);
   }
-}
-
-function pushTagWithActor(tag: string, actor: string): void {
-  execSync(
-    `
-    git config --global user.name "${actor}"
-    git config --global user.email "${actor}@users.noreply.github.com"
-    git tag -d ${tag}
-    git tag -a ${tag} -m "Release ${tag} by ${actor}"
-    git push --force origin ${tag}
-  `,
-    { stdio: "inherit" },
-  );
-
-  process.stdout.write(`Tag ${tag} force-pushed by ${actor}\n`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
