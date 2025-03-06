@@ -15,7 +15,7 @@ export async function createRelease(): Promise<string> {
     if (!tag_name) throw new Error("Tag name is required but not set.");
 
     const target_commitish = process.env.TARGET_BRANCH || "main";
-    const name = (process.env.RELEASE_TITLE || `${tag_name}`).trim();
+    const name = ` ${process.env.RELEASE_TITLE || tag_name}`;
     const body = process.env.RELEASE_BODY || "";
     const draft = process.env.RELEASE_DRAFT === "true";
     const prerelease = process.env.RELEASE_PRERELEASE === "true";
