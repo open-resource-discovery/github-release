@@ -1,5 +1,6 @@
 import { getOctokit, context } from "@actions/github";
 import * as fs from "fs";
+import { execSync } from "child_process";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export async function createRelease(): Promise<string> {
@@ -19,9 +20,14 @@ export async function createRelease(): Promise<string> {
     const draft = process.env.RELEASE_DRAFT === "true";
     const prerelease = process.env.RELEASE_PRERELEASE === "true";
 
+    const actor = process.env.GITHUB_ACTOR || "unknown-actor"; // Force actor
+
     process.stdout.write(
       `Creating release for tag: ${tag_name} in ${owner}/${repo}\n`,
     );
+
+    // Push a signed commit/tag with the GITHUB_ACTOR before creating the release
+    pushTagWithActor(tag_name, actor);
 
     const release = await octokit.rest.repos.createRelease({
       owner,
@@ -47,6 +53,21 @@ export async function createRelease(): Promise<string> {
     process.stderr.write(`Error creating release: ${errorMessage}\n`);
     process.exit(1);
   }
+}
+
+// Function to push a tag using the GitHub Actor
+function pushTagWithActor(tag: string, actor: string): void {
+  execSync(
+    `
+    git config --global user.name "${actor}"
+    git config --global user.email "${actor}@users.noreply.github.com"
+    git tag -a ${tag} -m "Release ${tag} by ${actor}"
+    git push origin ${tag}
+  `,
+    { stdio: "inherit" },
+  );
+
+  process.stdout.write(`Tag ${tag} pushed by ${actor}`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
