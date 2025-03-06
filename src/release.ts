@@ -15,7 +15,7 @@ export async function createRelease(): Promise<string> {
     if (!tag_name) throw new Error("Tag name is required but not set.");
 
     const target_commitish = process.env.TARGET_BRANCH || "main";
-    const name = ` ${process.env.RELEASE_TITLE || tag_name}`;
+    const name = ` ${process.env.RELEASE_TITLE || tag_name} `; // Leerzeichen vorne und hinten
     const body = process.env.RELEASE_BODY || "";
     const draft = process.env.RELEASE_DRAFT === "true";
     const prerelease = process.env.RELEASE_PRERELEASE === "true";
@@ -23,12 +23,10 @@ export async function createRelease(): Promise<string> {
     const actor = process.env.GITHUB_ACTOR || "unknown-actor"; // Force actor
 
     process.stdout.write(
-      `Creating release for tag: ${tag_name} in ${owner}/${repo}\n`,
+      `Creating release for tag: ${tag_name} in ${owner}/${repo} by ${actor}\n`,
     );
 
-    // Push a signed commit/tag with the GITHUB_ACTOR before creating the release
-    pushTagWithActor(tag_name, actor);
-
+    // 🚀 Methode 1: Release erstellen und direkt updaten
     const release = await octokit.rest.repos.createRelease({
       owner,
       repo,
@@ -48,6 +46,20 @@ export async function createRelease(): Promise<string> {
       body,
     });
 
+    // 🔍 Debugging: Creator prüfen
+    const releaseDetails = await octokit.rest.repos.getRelease({
+      owner,
+      repo,
+      release_id: release.data.id,
+    });
+
+    process.stderr.write(
+      `Release created by: ${releaseDetails.data.author?.login}`,
+    );
+
+    // 🚀 Methode 2: Tag neu pushen, um Creator zu erzwingen
+    pushTagWithActor(tag_name, actor);
+
     const githubOutput = process.env.GITHUB_OUTPUT;
     if (githubOutput) {
       fs.appendFileSync(githubOutput, `release-url=${release.data.html_url}\n`);
@@ -63,19 +75,20 @@ export async function createRelease(): Promise<string> {
   }
 }
 
-// Function to push a tag using the GitHub Actor
+// 🚀 Methode 2: Force-Push Tag mit GITHUB_ACTOR
 function pushTagWithActor(tag: string, actor: string): void {
   execSync(
     `
     git config --global user.name "${actor}"
     git config --global user.email "${actor}@users.noreply.github.com"
+    git tag -d ${tag}  # Löscht das lokale Tag
     git tag -a ${tag} -m "Release ${tag} by ${actor}"
-    git push origin ${tag}
+    git push --force origin ${tag}  # Erzwingt ein erneutes Tag-Push
   `,
     { stdio: "inherit" },
   );
 
-  process.stdout.write(`Tag ${tag} pushed by ${actor}`);
+  process.stdout.write(`Tag ${tag} force-pushed by ${actor}\n`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
