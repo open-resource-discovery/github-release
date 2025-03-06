@@ -15,7 +15,7 @@ export async function createRelease(): Promise<string> {
     if (!tag_name) throw new Error("Tag name is required but not set.");
 
     const target_commitish = process.env.TARGET_BRANCH || "main";
-    const name = ` ${process.env.RELEASE_TITLE || tag_name} `; // Leerzeichen vorne und hinten
+    const name = `${process.env.RELEASE_TITLE || tag_name}`; // Leerzeichen vorne und hinten
     const body = process.env.RELEASE_BODY || "";
     const draft = process.env.RELEASE_DRAFT === "true";
     const prerelease = process.env.RELEASE_PRERELEASE === "true";
@@ -26,7 +26,10 @@ export async function createRelease(): Promise<string> {
       `Creating release for tag: ${tag_name} in ${owner}/${repo} by ${actor}\n`,
     );
 
-    // 🚀 Methode 1: Release erstellen und direkt updaten
+    pushTagWithActor(tag_name, actor);
+
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
     const release = await octokit.rest.repos.createRelease({
       owner,
       repo,
@@ -57,9 +60,6 @@ export async function createRelease(): Promise<string> {
       `Release created by: ${releaseDetails.data.author?.login}`,
     );
 
-    // 🚀 Methode 2: Tag neu pushen, um Creator zu erzwingen
-    pushTagWithActor(tag_name, actor);
-
     const githubOutput = process.env.GITHUB_OUTPUT;
     if (githubOutput) {
       fs.appendFileSync(githubOutput, `release-url=${release.data.html_url}\n`);
@@ -75,15 +75,14 @@ export async function createRelease(): Promise<string> {
   }
 }
 
-// 🚀 Methode 2: Force-Push Tag mit GITHUB_ACTOR
 function pushTagWithActor(tag: string, actor: string): void {
   execSync(
     `
     git config --global user.name "${actor}"
     git config --global user.email "${actor}@users.noreply.github.com"
-    git tag -d ${tag}  # Löscht das lokale Tag
+    git tag -d ${tag}
     git tag -a ${tag} -m "Release ${tag} by ${actor}"
-    git push --force origin ${tag}  # Erzwingt ein erneutes Tag-Push
+    git push --force origin ${tag}
   `,
     { stdio: "inherit" },
   );
