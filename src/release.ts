@@ -1,5 +1,6 @@
 import { getOctokit, context } from "@actions/github";
 import * as fs from "fs";
+import { execSync } from "child_process";
 
 /* eslint-disable @typescript-eslint/naming-convention */
 export async function createRelease(): Promise<string> {
@@ -13,41 +14,49 @@ export async function createRelease(): Promise<string> {
     const tag_name = process.env.TAG;
     if (!tag_name) throw new Error("Tag name is required but not set.");
 
-    const target_commitish = process.env.TARGET_BRANCH || "main";
+    const temp_branch = `release-temp-${Date.now()}`;
     const name = ` ${process.env.RELEASE_TITLE || tag_name} `; // Leerzeichen vorne und hinten
     const body = process.env.RELEASE_BODY || "";
     const draft = process.env.RELEASE_DRAFT === "true";
     const prerelease = process.env.RELEASE_PRERELEASE === "true";
     const actor = process.env.GITHUB_ACTOR || "unknown-actor";
 
-    process.stdout.write(`📌 Creating a temporary PR as ${actor}...\n`);
+    process.stdout.write(
+      `📌 Creating a temporary branch & PR as ${actor}...\n`,
+    );
 
-    // 🚀 Schritt 1: Erstelle einen neuen temporären Branch & PR
+    // 🚀 Schritt 1: Erstelle einen neuen temporären Branch mit einem Fake-Commit
+    execSync(
+      `
+      git checkout -b ${temp_branch}
+      echo "Temporary commit for release ${tag_name}" > temp_release_file.txt
+      git add temp_release_file.txt
+      git commit -m "chore: Temporary commit for release ${tag_name}"
+      git push origin ${temp_branch}
+    `,
+      { stdio: "inherit" },
+    );
+
+    process.stdout.write(`✅ Temporary branch ${temp_branch} pushed.\n`);
+
+    // 🚀 Schritt 2: Erstelle einen Pull Request aus dem temporären Branch
     const pr = await octokit.rest.pulls.create({
       owner,
       repo,
       title: `Temporary PR for release ${tag_name}`,
-      head: target_commitish,
+      head: temp_branch,
       base: "main",
       body: "This PR is used to trigger a release and will be closed automatically.",
     });
 
     process.stdout.write(`✅ PR #${pr.data.number} created.\n`);
 
-    // 🚀 Schritt 2: Füge einen Kommentar hinzu (um sicherzustellen, dass der Actor aktiv ist)
-    await octokit.rest.issues.createComment({
-      owner,
-      repo,
-      issue_number: pr.data.number,
-      body: `@${actor} is triggering this release.`,
-    });
-
-    // 🚀 Schritt 3: Erstelle das Tag aus dem PR-Branch
+    // 🚀 Schritt 3: Tag setzen aus dem PR-Branch
     await octokit.rest.git.createRef({
       owner,
       repo,
       ref: `refs/tags/${tag_name}`,
-      sha: pr.data.head.sha, // Nutzt den letzten Commit des PRs
+      sha: pr.data.head.sha, // Nutzt den PR-Commit
     });
 
     process.stdout.write(`🏷️ Tag ${tag_name} created from PR.\n`);
@@ -66,7 +75,7 @@ export async function createRelease(): Promise<string> {
 
     process.stdout.write(`✅ Release created: ${release.data.html_url}\n`);
 
-    // 🚀 Schritt 5: PR automatisch schließen
+    // 🚀 Schritt 5: PR schließen & temporären Branch löschen
     await octokit.rest.pulls.update({
       owner,
       repo,
@@ -74,7 +83,11 @@ export async function createRelease(): Promise<string> {
       state: "closed",
     });
 
-    process.stdout.write(`❌ Temporary PR #${pr.data.number} closed.\n`);
+    execSync(`git push origin --delete ${temp_branch}`, { stdio: "inherit" });
+
+    process.stdout.write(
+      `❌ Temporary PR #${pr.data.number} closed & branch deleted.\n`,
+    );
 
     const githubOutput = process.env.GITHUB_OUTPUT;
     if (githubOutput) {
