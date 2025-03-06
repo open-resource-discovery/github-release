@@ -3,9 +3,9 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "saturday"
-      time: "06:00"
+      interval: "daily"
+   #   day: "saturday"
+      time: "03:00"
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 20
     labels:
