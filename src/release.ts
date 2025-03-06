@@ -20,42 +20,61 @@ export async function createRelease(): Promise<string> {
     const prerelease = process.env.RELEASE_PRERELEASE === "true";
     const actor = process.env.GITHUB_ACTOR || "unknown-actor";
 
-    process.stdout.write(`Creating issue to switch context to ${actor}\n`);
+    process.stdout.write(`📌 Creating a temporary PR as ${actor}...\n`);
 
-    // 🚀 Workaround: Erstelle einen Issue, um den `GITHUB_ACTOR` zu aktivieren
-    const issue = await octokit.rest.issues.create({
+    // 🚀 Schritt 1: Erstelle einen neuen temporären Branch & PR
+    const pr = await octokit.rest.pulls.create({
       owner,
       repo,
-      title: "Temporary Issue to Set Release Creator",
-      body: "This issue is created to switch context to the correct actor.",
+      title: `Temporary PR for release ${tag_name}`,
+      head: target_commitish,
+      base: "main",
+      body: "This PR is used to trigger a release and will be closed automatically.",
     });
 
-    // Warte kurz, um sicherzustellen, dass der Issue erfasst wurde
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    process.stdout.write(`✅ PR #${pr.data.number} created.\n`);
 
-    // 🚀 Schließe den Issue wieder als `GITHUB_ACTOR`
-    await octokit.rest.issues.update({
+    // 🚀 Schritt 2: Füge einen Kommentar hinzu (um sicherzustellen, dass der Actor aktiv ist)
+    await octokit.rest.issues.createComment({
       owner,
       repo,
-      issue_number: issue.data.number,
-      state: "closed",
+      issue_number: pr.data.number,
+      body: `@${actor} is triggering this release.`,
     });
 
-    process.stdout.write(
-      `Issue #${issue.data.number} closed by ${actor}. Proceeding with release.\n`,
-    );
+    // 🚀 Schritt 3: Erstelle das Tag aus dem PR-Branch
+    await octokit.rest.git.createRef({
+      owner,
+      repo,
+      ref: `refs/tags/${tag_name}`,
+      sha: pr.data.head.sha, // Nutzt den letzten Commit des PRs
+    });
 
-    // 🚀 Jetzt erstelle das Release
+    process.stdout.write(`🏷️ Tag ${tag_name} created from PR.\n`);
+
+    // 🚀 Schritt 4: Erstelle das Release
     const release = await octokit.rest.repos.createRelease({
       owner,
       repo,
       tag_name,
-      target_commitish,
+      target_commitish: pr.data.head.ref,
       name,
       body,
       draft,
       prerelease,
     });
+
+    process.stdout.write(`✅ Release created: ${release.data.html_url}\n`);
+
+    // 🚀 Schritt 5: PR automatisch schließen
+    await octokit.rest.pulls.update({
+      owner,
+      repo,
+      pull_number: pr.data.number,
+      state: "closed",
+    });
+
+    process.stdout.write(`❌ Temporary PR #${pr.data.number} closed.\n`);
 
     const githubOutput = process.env.GITHUB_OUTPUT;
     if (githubOutput) {
@@ -67,7 +86,7 @@ export async function createRelease(): Promise<string> {
     const errorMessage =
       error instanceof Error ? error.message : "An unknown error occurred.";
 
-    process.stderr.write(`Error creating release: ${errorMessage}\n`);
+    process.stderr.write(`❌ Error creating release: ${errorMessage}\n`);
     process.exit(1);
   }
 }
