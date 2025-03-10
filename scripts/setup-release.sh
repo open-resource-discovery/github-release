@@ -40,16 +40,8 @@ if [ -n "$TAG_TEMPLATE" ]; then
   tag=$(echo "$TAG_TEMPLATE" | sed "s/<version>/$version/")  # Use configured template
   echo "Using tag from template: $tag"
 else
-  # Detect previous tags with 'ms/' prefix
-  latest_tag=$(git tag --list --sort=-version:refname | grep -E '^ms/' | head -n 1)
-
-  if [ -n "$latest_tag" ]; then
-    tag="ms/$version"  # Continue using 'ms/' if previous tags exist
-    echo "Detected previous ms/ tags. Using: $tag"
-  else
-    tag="v$version"  # Default to 'v<version>' if no 'ms/' tags exist
-    echo "No ms/ tags found. Using default: $tag"
-  fi
+  tag="v$version"
+  echo "No tag template provided. Using default: $tag"
 fi
 
 # Set RELEASE_TITLE

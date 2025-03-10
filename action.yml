@@ -29,7 +29,7 @@ inputs:
   tag-template:
     description: "Custom template for tag naming (e.g., 'ms/<version>'). If empty, auto-detection is used."
     required: false
-    default: ""
+    default: "v<version>"
   fallback-version:
     description: "Fallback version if package.json has no version."
     required: false
