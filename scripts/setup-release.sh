@@ -108,15 +108,19 @@ else
 fi
 
 if [ -n "$TAG_TEMPLATE" ]; then
+   # Remove <version> from the template and search for existing tags with this pattern
   latest_tag=$(git tag --list --sort=-version:refname | grep -E "$(echo "$TAG_TEMPLATE" | sed 's/<version>//')" | head -n 1)
-else
-  # Automatically detect prefix (ms/ or v/)
-  latest_tag=$(git tag --list --sort=-version:refname | grep -E '^ms/' | head -n 1)
-
-  if [ -z "$latest_tag" ]; then
-    echo "No ms/* tags found. Falling back to non-prefixed tags."
-    latest_tag=$(git describe --tags --abbrev=0 || echo "")
+  
+  if [ -n "$latest_tag" ]; then
+    echo "Detected latest tag matching template: $latest_tag"
+  else
+    echo "No matching tags found for template. Using default versioning."
+    latest_tag=""
   fi
+else
+  # Standard fallback: No more automatic detection
+  latest_tag=""
+  echo "No tag template provided. Skipping automatic tag detection."
 fi
 
 if [ -z "$latest_tag" ]; then
