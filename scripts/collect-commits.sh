@@ -97,7 +97,7 @@ else
   for email in $commit_emails; do
 
     if echo "$email" | grep -q '\[bot\]'; then
-      echo "::warning:: Skipping bot user: $email"
+      echo "Skipping bot user: $email"
       continue
     fi
 

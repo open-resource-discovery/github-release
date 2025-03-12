@@ -9,7 +9,7 @@ git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 FALLBACK_VERSION="${FALLBACK_VERSION:-}"
-CUSTOM_TAG="${CUSTOM_TAG:-}"
+TAG_TEMPLATE="${TAG_TEMPLATE:-}"
 
 # Check if the changelog file exists
 if [ ! -f "$CHANGELOG_FILE_PATH" ]; then
@@ -35,10 +35,13 @@ if [ -z "$version" ] || [ "$version" = "null" ]; then
   exit 1
 fi
 
-if [ -n "$CUSTOM_TAG" ]; then
-  tag="$CUSTOM_TAG"
+# Determine tag based on priority
+if [ -n "$TAG_TEMPLATE" ]; then
+  tag=$(echo "$TAG_TEMPLATE" | sed "s/<version>/$version/")  # Use configured template
+  echo "Using tag from template: $tag"
 else
-  tag="ms/$version"
+  tag="v$version"
+  echo "No tag template provided. Using default: $tag"
 fi
 
 # Set RELEASE_TITLE
@@ -104,13 +107,20 @@ else
   export RELEASE_EXISTS=false
 fi
 
-# Detect the latest tag
-latest_tag=$(git tag --list "ms/*" --sort=-version:refname | head -n 1)
-
-# If no prefixed tags exist, fall back to non-prefixed tags
-if [ -z "$latest_tag" ]; then
-  echo "No ms/* tags found. Falling back to non-prefixed tags."
-  latest_tag=$(git describe --tags --abbrev=0 || echo "")
+if [ -n "$TAG_TEMPLATE" ]; then
+   # Remove <version> from the template and search for existing tags with this pattern
+  latest_tag=$(git tag --list --sort=-version:refname | grep -E "$(echo "$TAG_TEMPLATE" | sed 's/<version>//')" | head -n 1)
+  
+  if [ -n "$latest_tag" ]; then
+    echo "Detected latest tag matching template: $latest_tag"
+  else
+    echo "No matching tags found for template. Using default versioning."
+    latest_tag=""
+  fi
+else
+  # Standard fallback: No more automatic detection
+  latest_tag=""
+  echo "No tag template provided. Skipping automatic tag detection."
 fi
 
 if [ -z "$latest_tag" ]; then
