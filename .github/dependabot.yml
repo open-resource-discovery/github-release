@@ -7,9 +7,6 @@ updates:
       time: "06:00"
       timezone: "Europe/Berlin"
     open-pull-requests-limit: 20
-    labels:
-      - "dependencies"
-      - "dependabot"
     groups:
       github-actions:
         patterns:
@@ -30,8 +27,6 @@ updates:
           - "jest"
           - "@jest/globals"
           - "@types/jest"
-    reviewers:
-      - "dependabot[bot]"
 
   # Dockerfile-Dependencies
   - package-ecosystem: "docker"
@@ -40,10 +35,3 @@ updates:
       interval: "daily"
       time: "06:00"
       timezone: "Europe/Berlin"
-    labels:
-      - "dependencies"
-      - "dependabot"
-    ignore:
-      - dependency-name: "node"
-    reviewers:
-      - "dependabot[bot]"
