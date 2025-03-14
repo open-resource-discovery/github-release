@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:22.14-alpine AS build
+FROM node:22.13-alpine AS build
 
 WORKDIR /app
 
@@ -24,7 +24,7 @@ RUN rm -rf ./src \
            ./tsconfig.prod.json
 
 # Stage 2: Production
-FROM node:22.14-alpine
+FROM node:22.13-alpine
 
 WORKDIR /app
 
@@ -35,7 +35,7 @@ COPY --from=build /app /app
 RUN apk add --no-cache \
     git=2.47.2-r0 \
     jq=1.7.1-r0 \
-    curl=8.12.0-r0
+    curl=8.11.0-r0
 
 # Ensure scripts and compiled TypeScript files are executable
 RUN chmod +x /app/scripts/*.sh
