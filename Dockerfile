@@ -35,7 +35,7 @@ COPY --from=build /app /app
 RUN apk add --no-cache \
     git=2.47.2-r0 \
     jq=1.7.1-r0 \
-    curl=8.12.1-r0
+    curl=8.12.0-r0
 
 # Ensure scripts and compiled TypeScript files are executable
 RUN chmod +x /app/scripts/*.sh
