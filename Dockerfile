@@ -34,9 +34,6 @@ COPY --from=build /app /app
 # Install packages
 RUN apk add --no-cache git jq curl
 
-RUN curl -fsSL https://github.com/cli/cli/releases/latest/download/gh_2.43.0_linux_amd64.tar.gz | \
-    tar -xz --strip-components=1 -C /usr/local/bin gh_2.43.0_linux_amd64/bin/gh
-
 # Ensure scripts and compiled TypeScript files are executable
 RUN chmod +x /app/scripts/*.sh
 RUN chmod +x /app/dist/src/release.js
