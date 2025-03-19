@@ -58,15 +58,24 @@ else
     -d "{\"title\":\"$pr_title\",\"head\":\"$branch_name\",\"base\":\"$TARGET_BRANCH\",\"body\":\"$pr_body\"}" \
     "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls")
 
+  echo "GitHub API Response: $response"
+
   if ! echo "$response" | jq empty > /dev/null 2>&1; then
     echo "::error:: Invalid GitHub API response: $response"
+    exit 1
+  fi
+
+  # Extract possible API error messages
+  error_message=$(echo "$response" | jq -r '.message // empty')
+  if [ -n "$error_message" ]; then
+    echo "::error:: GitHub API Error: $error_message"
     exit 1
   fi
 
   pr_url=$(echo "$response" | jq -r '.html_url // empty')
 
   if [ -z "$pr_url" ] || [ "$pr_url" = "null" ]; then
-    echo "::warning:: Failed to extract PR URL. Check API response."
+    echo "::warning:: Failed to extract PR URL. Full API Response: $response"
   fi
 fi
 
