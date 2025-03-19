@@ -32,7 +32,7 @@ WORKDIR /app
 COPY --from=build /app /app
 
 # Install packages
-RUN apk add --no-cache git jq curl gh
+RUN apk add --no-cache git jq curl
 
 # Ensure scripts and compiled TypeScript files are executable
 RUN chmod +x /app/scripts/*.sh
