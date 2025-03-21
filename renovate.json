@@ -9,7 +9,11 @@
   "schedule": ["every day at 06:00"],
 
   "packageRules": [
-    { "matchCategories": ["docker"], "enabled": true, "groupName": "Docker Dependencies" },
+    {
+      "matchCategories": ["docker"],
+      "enabled": true,
+      "groupName": "Docker Dependencies"
+    },
     { "semanticCommitType": "chore", "matchPackageNames": ["*"] },
 
     {
