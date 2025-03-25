@@ -30,7 +30,7 @@
     },
     {
       "groupName": "Testing Frameworks",
-      "matchPackageNames": ["jest", "@jest/globals", "@types/jest"]
+      "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"]
     }
   ],
 
