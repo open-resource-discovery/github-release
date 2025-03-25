@@ -1,0 +1,44 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [":pinAllExceptPeerDependencies"],
+  "semanticCommits": "enabled",
+  "enabledManagers": ["npm", "docker"],
+  "branchPrefix": "deps/",
+  "timezone": "Europe/Berlin",
+  "prConcurrentLimit": 20,
+  "schedule": ["every weekend"],
+
+  "packageRules": [
+    {
+      "matchCategories": ["docker"],
+      "enabled": true,
+      "groupName": "Docker Dependencies"
+    },
+    { "semanticCommitType": "chore", "matchPackageNames": ["*"] },
+
+    {
+      "groupName": "GitHub Actions",
+      "matchPackagePatterns": ["@actions/*"]
+    },
+    {
+      "groupName": "TypeScript Build Tools",
+      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx"]
+    },
+    {
+      "groupName": "Linting Tools",
+      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"]
+    },
+    {
+      "groupName": "Testing Frameworks",
+      "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"]
+    }
+  ],
+
+  "automerge": true,
+  "platformAutomerge": true,
+  "lockFileMaintenance": { "enabled": true },
+  "additionalReviewers": ["nirooxx"],
+  "reviewersSampleSize": 2,
+  "addLabels": ["renovate"],
+  "prHourlyLimit": 0
+}
