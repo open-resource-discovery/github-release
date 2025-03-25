@@ -37,7 +37,7 @@
   "automerge": true,
   "platformAutomerge": true,
   "lockFileMaintenance": { "enabled": true },
-  "additionalReviewers": ["D068547"],
+  "additionalReviewers": ["nirooxx"],
   "reviewersSampleSize": 2,
   "addLabels": ["renovate"],
   "prHourlyLimit": 0
