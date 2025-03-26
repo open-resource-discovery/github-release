@@ -6,7 +6,7 @@
   "branchPrefix": "deps/",
   "timezone": "Europe/Berlin",
   "prConcurrentLimit": 20,
-  "schedule": ["every day at 06:00"],
+  "schedule": ["0 6 * * *"],
 
   "packageRules": [
     {
