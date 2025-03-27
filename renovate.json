@@ -13,48 +13,35 @@
   },
 
   "packageRules": [
-  {
+    {
       "matchPackageNames": ["*"],
       "automerge": true,
       "automergeType": "pr"
-  },
-  {
+    },
+    {
       "semanticCommitType": "chore",
       "matchPackageNames": ["*"]
-  },
-  {
+    },
+    {
       "groupName": "GitHub Actions",
       "matchPackagePatterns": ["^@actions/"]
-  },
-  {
+    },
+    {
       "groupName": "TypeScript Build Tools",
-      "matchPackageNames": [
-      "typescript",
-      "ts-jest",
-      "@tsconfig/node22",
-      "tsx"
-      ]
-  },
-  {
+      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx"]
+    },
+    {
       "groupName": "Linting Tools",
-      "matchPackageNames": [
-      "eslint",
-      "@sap/eslint-config",
-      "prettier"
-      ]
-  },
-  {
+      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"]
+    },
+    {
       "groupName": "Testing Frameworks",
-      "matchPackageNames": [
-      "jest",
-      "@jest/globals",
-      "jest-environment-node"
-      ]
-  },
-  {
+      "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"]
+    },
+    {
       "groupName": "Docker Dependencies",
       "matchCategories": ["dockerfile"],
       "enabled": true
-  }
+    }
   ]
 }
