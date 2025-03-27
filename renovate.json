@@ -1,44 +1,60 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [":pinAllExceptPeerDependencies"],
+  "extends": ["config:recommended"],
   "semanticCommits": "enabled",
   "enabledManagers": ["npm", "dockerfile"],
   "branchPrefix": "deps/",
   "timezone": "Europe/Berlin",
-  "prConcurrentLimit": 20,
-  "schedule": ["* 6 * * *"],
+  "schedule": ["at any time"],
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["at any time"]
+  },
 
   "packageRules": [
-    {
-      "matchCategories": ["dockerfile"],
-      "enabled": true,
-      "groupName": "Docker Dependencies"
-    },
-    { "semanticCommitType": "chore", "matchPackageNames": ["*"] },
-
-    {
+  {
+      "matchPackageNames": ["*"],
+      "automerge": true,
+      "automergeType": "pr"
+  },
+  {
+      "semanticCommitType": "chore",
+      "matchPackageNames": ["*"]
+  },
+  {
       "groupName": "GitHub Actions",
-      "matchPackagePatterns": ["@actions/*"]
-    },
-    {
+      "matchPackagePatterns": ["^@actions/"]
+  },
+  {
       "groupName": "TypeScript Build Tools",
-      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx"]
-    },
-    {
+      "matchPackageNames": [
+      "typescript",
+      "ts-jest",
+      "@tsconfig/node22",
+      "tsx"
+      ]
+  },
+  {
       "groupName": "Linting Tools",
-      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"]
-    },
-    {
+      "matchPackageNames": [
+      "eslint",
+      "@sap/eslint-config",
+      "prettier"
+      ]
+  },
+  {
       "groupName": "Testing Frameworks",
-      "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"]
-    }
-  ],
-
-  "automerge": true,
-  "platformAutomerge": true,
-  "lockFileMaintenance": { "enabled": true },
-  "additionalReviewers": ["nirooxx"],
-  "reviewersSampleSize": 2,
-  "addLabels": ["renovate"],
-  "prHourlyLimit": 0
+      "matchPackageNames": [
+      "jest",
+      "@jest/globals",
+      "jest-environment-node"
+      ]
+  },
+  {
+      "groupName": "Docker Dependencies",
+      "matchCategories": ["dockerfile"],
+      "enabled": true
+  }
+  ]
 }
