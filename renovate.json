@@ -11,13 +11,12 @@
     "enabled": true,
     "schedule": ["at any time"]
   },
-
+  "automerge": true,
+  "platformAutomerge": true,
+  "addLabels": ["renovate", "dependencies"],
+  "additionalReviewers": ["nirooxx"],
+  "reviewersSampleSize": 1,
   "packageRules": [
-    {
-      "matchPackageNames": ["*"],
-      "automerge": true,
-      "automergeType": "pr"
-    },
     {
       "semanticCommitType": "chore",
       "matchPackageNames": ["*"]
