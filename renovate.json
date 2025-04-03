@@ -7,10 +7,6 @@
   "schedule": ["at any time"],
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["at any time"]
-  },
   "automerge": true,
   "platformAutomerge": true,
   "addLabels": ["renovate", "dependencies"],
