@@ -8,35 +8,49 @@
   "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
   "automerge": true,
+  "automergeType": "pr",
   "platformAutomerge": true,
   "addLabels": ["renovate", "dependencies"],
   "additionalReviewers": ["nirooxx"],
   "reviewersSampleSize": 1,
   "packageRules": [
     {
+      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
+      "matchPackageNames": ["*"],
       "semanticCommitType": "chore",
-      "matchPackageNames": ["*"]
+      "automerge": true,
+      "automergeType": "pr"
     },
     {
       "groupName": "GitHub Actions",
-      "matchPackagePatterns": ["^@actions/"]
+      "matchPackagePatterns": ["^@actions/"],
+      "automerge": true,
+      "automergeType": "pr"
     },
     {
       "groupName": "TypeScript Build Tools",
-      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx"]
+      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx"],
+      "automerge": true,
+      "automergeType": "pr"
     },
     {
       "groupName": "Linting Tools",
-      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"]
+      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"],
+      "automerge": true,
+      "automergeType": "pr"
     },
     {
       "groupName": "Testing Frameworks",
-      "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"]
+      "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"],
+      "automerge": true,
+      "automergeType": "pr"
     },
     {
       "groupName": "Docker Dependencies",
       "matchCategories": ["dockerfile"],
-      "enabled": true
+      "enabled": true,
+      "automerge": true,
+      "automergeType": "pr"
     }
   ]
 }
