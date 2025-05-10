@@ -1,44 +1,56 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [":pinAllExceptPeerDependencies"],
+  "extends": ["config:recommended"],
   "semanticCommits": "enabled",
   "enabledManagers": ["npm", "dockerfile"],
   "branchPrefix": "deps/",
   "timezone": "Europe/Berlin",
-  "prConcurrentLimit": 20,
-  "schedule": ["* 6 * * *"],
-
+  "schedule": ["at any time"],
+  "prHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "automerge": true,
+  "automergeType": "pr",
+  "platformAutomerge": true,
+  "addLabels": ["renovate", "dependencies"],
+  "additionalReviewers": ["nirooxx"],
+  "reviewersSampleSize": 1,
   "packageRules": [
     {
-      "matchCategories": ["dockerfile"],
-      "enabled": true,
-      "groupName": "Docker Dependencies"
+      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
+      "matchPackageNames": ["*"],
+      "semanticCommitType": "chore",
+      "automerge": true,
+      "automergeType": "pr"
     },
-    { "semanticCommitType": "chore", "matchPackageNames": ["*"] },
-
     {
       "groupName": "GitHub Actions",
-      "matchPackagePatterns": ["@actions/*"]
+      "matchPackagePatterns": ["^@actions/"],
+      "automerge": true,
+      "automergeType": "pr"
     },
     {
       "groupName": "TypeScript Build Tools",
-      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx"]
+      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx"],
+      "automerge": true,
+      "automergeType": "pr"
     },
     {
       "groupName": "Linting Tools",
-      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"]
+      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"],
+      "automerge": true,
+      "automergeType": "pr"
     },
     {
       "groupName": "Testing Frameworks",
-      "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"]
+      "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"],
+      "automerge": true,
+      "automergeType": "pr"
+    },
+    {
+      "groupName": "Docker Dependencies",
+      "matchCategories": ["dockerfile"],
+      "enabled": true,
+      "automerge": true,
+      "automergeType": "pr"
     }
-  ],
-
-  "automerge": true,
-  "platformAutomerge": true,
-  "lockFileMaintenance": { "enabled": true },
-  "additionalReviewers": ["nirooxx"],
-  "reviewersSampleSize": 2,
-  "addLabels": ["renovate"],
-  "prHourlyLimit": 0
+  ]
 }
