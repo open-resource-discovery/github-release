@@ -17,11 +17,11 @@ inputs:
   release-draft:
     description: "Mark release as draft."
     required: false
-    default: false
+    default: "false"
   release-prerelease:
     description: "Mark release as prerelease."
     required: false
-    default: false
+    default: "false"
   release-title-prefix:
     description: "Prefix for release title."
     required: false
@@ -38,6 +38,10 @@ inputs:
     description: "Path to the changelog file."
     required: false
     default: "CHANGELOG.md"
+  version:
+    description: "Explicit version for releasing (overwrites package.json and fallback version)"
+    required: false
+    default: ""
 
 runs:
   using: "docker"

@@ -23,7 +23,10 @@ if [ ! -f "$CHANGELOG_FILE_PATH" ]; then
 fi
 
 # Determine the version and tag
-if [ -f "package.json" ]; then
+if [ -n "$VERSION_OVERRIDE" ]; then
+  version="$VERSION_OVERRIDE"
+  echo "Using custom version override: $version"
+elif [ -f "package.json" ]; then
   version=$(jq -r '.version' package.json)
 else
   echo "package.json not found. Using fallback version."
