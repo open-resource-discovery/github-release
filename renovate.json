@@ -1,56 +1,62 @@
 {
-  "extends": ["config:recommended"],
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:enableMajor",
+    ":pinAllExceptPeerDependencies"
+  ],
   "semanticCommits": "enabled",
-  "enabledManagers": ["npm", "dockerfile"],
+  "enabledManagers": ["npm", "dockerfile", "docker-compose"],
   "branchPrefix": "deps/",
   "timezone": "Europe/Berlin",
   "schedule": ["at any time"],
-  "prHourlyLimit": 0,
   "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
   "automerge": true,
   "automergeType": "pr",
   "platformAutomerge": true,
-  "addLabels": ["renovate", "dependencies"],
-  "additionalReviewers": ["nirooxx"],
-  "reviewersSampleSize": 1,
+  "automergeStrategy": "merge-commit",
   "packageRules": [
     {
-      "matchUpdateTypes": ["major", "minor", "patch", "pin", "digest"],
-      "matchPackageNames": ["*"],
+      "groupName": "Docker Images",
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["major", "minor", "patch", "digest"],
       "semanticCommitType": "chore",
       "automerge": true,
-      "automergeType": "pr"
+      "automergeType": "pr",
+      "platformAutomerge": true,
+      "automergeStrategy": "merge-commit"
+    },
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies", "peerDependencies"],
+      "matchDatasources": ["npm"],
+      "semanticCommitType": "chore",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true,
+      "automergeStrategy": "merge-commit"
     },
     {
       "groupName": "GitHub Actions",
-      "matchPackagePatterns": ["^@actions/"],
-      "automerge": true,
-      "automergeType": "pr"
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@actions/"]
     },
     {
       "groupName": "TypeScript Build Tools",
-      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx"],
-      "automerge": true,
-      "automergeType": "pr"
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx", "@types/jest", "@types/node"]
     },
     {
       "groupName": "Linting Tools",
-      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"],
-      "automerge": true,
-      "automergeType": "pr"
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"]
     },
     {
       "groupName": "Testing Frameworks",
-      "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"],
-      "automerge": true,
-      "automergeType": "pr"
-    },
-    {
-      "groupName": "Docker Dependencies",
-      "matchCategories": ["dockerfile"],
-      "enabled": true,
-      "automerge": true,
-      "automergeType": "pr"
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"]
     }
   ]
 }
