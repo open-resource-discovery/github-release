@@ -46,7 +46,14 @@
     {
       "groupName": "TypeScript Build Tools",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx", "@types/jest", "@types/node"]
+      "matchPackageNames": [
+        "typescript",
+        "ts-jest",
+        "@tsconfig/node22",
+        "tsx",
+        "@types/jest",
+        "@types/node"
+      ]
     },
     {
       "groupName": "Linting Tools",
