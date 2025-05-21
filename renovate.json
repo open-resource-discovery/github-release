@@ -6,37 +6,27 @@
     ":pinAllExceptPeerDependencies"
   ],
   "semanticCommits": "enabled",
-  "enabledManagers": ["npm", "dockerfile", "docker-compose"],
+  "enabledManagers": ["npm", "dockerfile"],
   "branchPrefix": "deps/",
   "timezone": "Europe/Berlin",
   "schedule": ["at any time"],
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
-  "automerge": true,
-  "automergeType": "pr",
-  "platformAutomerge": true,
-  "automergeStrategy": "merge-commit",
   "packageRules": [
     {
       "groupName": "Docker Images",
-      "matchManagers": ["dockerfile", "docker-compose"],
+      "matchManagers": ["dockerfile"],
       "matchDatasources": ["docker"],
       "matchUpdateTypes": ["major", "minor", "patch", "digest"],
       "semanticCommitType": "chore",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true,
-      "automergeStrategy": "merge-commit"
+      "automerge": true
     },
     {
       "matchManagers": ["npm"],
-      "matchDepTypes": ["dependencies", "devDependencies", "peerDependencies"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
       "matchDatasources": ["npm"],
       "semanticCommitType": "chore",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true,
-      "automergeStrategy": "merge-commit"
+      "automerge": true
     },
     {
       "groupName": "GitHub Actions",
