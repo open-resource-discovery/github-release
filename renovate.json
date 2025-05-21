@@ -1,44 +1,59 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [":pinAllExceptPeerDependencies"],
+  "extends": [
+    "config:recommended",
+    "docker:enableMajor",
+    ":pinAllExceptPeerDependencies"
+  ],
   "semanticCommits": "enabled",
   "enabledManagers": ["npm", "dockerfile"],
   "branchPrefix": "deps/",
   "timezone": "Europe/Berlin",
-  "prConcurrentLimit": 20,
-  "schedule": ["* 6 * * *"],
-
+  "schedule": ["at any time"],
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
   "packageRules": [
     {
-      "matchCategories": ["dockerfile"],
-      "enabled": true,
-      "groupName": "Docker Dependencies"
+      "groupName": "Docker Images",
+      "matchManagers": ["dockerfile"],
+      "matchDatasources": ["docker"],
+      "matchUpdateTypes": ["major", "minor", "patch", "digest"],
+      "semanticCommitType": "chore",
+      "automerge": true
     },
-    { "semanticCommitType": "chore", "matchPackageNames": ["*"] },
-
+    {
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "devDependencies"],
+      "matchDatasources": ["npm"],
+      "semanticCommitType": "chore",
+      "automerge": true
+    },
     {
       "groupName": "GitHub Actions",
-      "matchPackagePatterns": ["@actions/*"]
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@actions/"]
     },
     {
       "groupName": "TypeScript Build Tools",
-      "matchPackageNames": ["typescript", "ts-jest", "@tsconfig/node22", "tsx"]
+      "matchManagers": ["npm"],
+      "matchPackageNames": [
+        "typescript",
+        "ts-jest",
+        "@tsconfig/node22",
+        "tsx",
+        "@types/jest",
+        "@types/node"
+      ]
     },
     {
       "groupName": "Linting Tools",
+      "matchManagers": ["npm"],
       "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"]
     },
     {
       "groupName": "Testing Frameworks",
+      "matchManagers": ["npm"],
       "matchPackageNames": ["jest", "@jest/globals", "jest-environment-node"]
     }
-  ],
-
-  "automerge": true,
-  "platformAutomerge": true,
-  "lockFileMaintenance": { "enabled": true },
-  "additionalReviewers": ["nirooxx"],
-  "reviewersSampleSize": 2,
-  "addLabels": ["renovate"],
-  "prHourlyLimit": 0
+  ]
 }
