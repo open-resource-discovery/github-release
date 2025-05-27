@@ -27,19 +27,15 @@ inputs:
     required: false
     default: ""
   tag-template:
-    description: "Custom template for tag naming (e.g., 'ms/<version>'). If empty, fallback (v<version>) is used."
+    description: "Custom template for tag naming (e.g., 'ms/<version>'). If empty, package.json (v<version>) is used."
     required: false
     default: "v<version>"
-  fallback-version:
-    description: "Fallback version if package.json has no version."
-    required: false
-    default: ""
   changelog-file-path:
     description: "Path to the changelog file."
     required: false
     default: "CHANGELOG.md"
   version:
-    description: "Explicit version for releasing (overwrites package.json and fallback version)"
+    description: "Explicit version for releasing (overwrites package.json)"
     required: false
     default: ""
 

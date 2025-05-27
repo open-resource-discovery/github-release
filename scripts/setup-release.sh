@@ -8,7 +8,6 @@ git config --global user.name "${GITHUB_ACTOR}"
 git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
-FALLBACK_VERSION="${FALLBACK_VERSION:-}"
 TAG_TEMPLATE="${TAG_TEMPLATE:-}"
 
 # Check if the changelog file exists
@@ -29,12 +28,12 @@ if [ -n "$VERSION_OVERRIDE" ]; then
 elif [ -f "package.json" ]; then
   version=$(jq -r '.version' package.json)
 else
-  echo "package.json not found. Using fallback version."
-  version="$FALLBACK_VERSION"
+  echo "::error:: package.json not found. Version cannot be determined."
+  exit 1
 fi
 
 if [ -z "$version" ] || [ "$version" = "null" ]; then
-  echo "Error: No version found in package.json and no fallback version provided."
+  echo "Error: No version found in package.json."
   exit 1
 fi
 
