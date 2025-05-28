@@ -27,13 +27,10 @@ if [ -n "$VERSION_OVERRIDE" ]; then
   echo "Using custom version override: $version"
 elif [ -f "package.json" ]; then
   version=$(jq -r '.version' package.json)
-else
-  echo "::error:: package.json not found. Version cannot be determined."
-  exit 1
 fi
 
 if [ -z "$version" ] || [ "$version" = "null" ]; then
-  echo "Error: No version found in package.json."
+  echo "Error: Mandatory "version" parameter has not been specified. Please check GitHub Action configuration."
   exit 1
 fi
 
