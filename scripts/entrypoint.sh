@@ -12,9 +12,6 @@ echo "CHANGELOG_FILE_PATH=$(printenv INPUT_CHANGELOG-FILE-PATH)" | tee -a "$GITH
 export TAG_TEMPLATE="$(printenv INPUT_TAG-TEMPLATE)"
 echo "TAG_TEMPLATE=$TAG_TEMPLATE" | tee -a "$GITHUB_ENV"
 
-export FALLBACK_VERSION="$(printenv INPUT_FALLBACK-VERSION)"
-echo "FALLBACK_VERSION=$(printenv INPUT_FALLBACK-VERSION)" | tee -a "$GITHUB_ENV"
-
 export GITHUB_TOKEN="$(printenv INPUT_GITHUB-TOKEN)"
 echo "GITHUB_TOKEN=$(printenv INPUT_GITHUB-TOKEN)" | tee -a "$GITHUB_ENV"
 
@@ -26,6 +23,9 @@ echo "RELEASE_PRERELEASE=$(printenv INPUT_RELEASE-PRERELEASE)" | tee -a "$GITHUB
 
 export RELEASE_TITLE_PREFIX="$(printenv INPUT_RELEASE-TITLE-PREFIX)"
 echo "RELEASE_TITLE_PREFIX=$(printenv INPUT_RELEASE-TITLE-PREFIX)" | tee -a "$GITHUB_ENV"
+
+export VERSION_OVERRIDE="$(printenv INPUT_VERSION)"
+echo "VERSION_OVERRIDE=$VERSION_OVERRIDE" | tee -a "$GITHUB_ENV"
 
 # Import scripts instead of executing them with sh
 . /app/scripts/setup-release.sh
