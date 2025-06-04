@@ -23,9 +23,19 @@ fi
 
 # Sort tags numerically (SemVer) ascending
 semver_tags=$(git tag --list | sort -V) || { echo "::error:: Failed to list tags"; return 0; }
+
+# Debug: show full sorted list
+echo "DEBUG: semver_tags:"
+echo "$semver_tags"
+
 # Derive previous and next tag based on numeric order
 prev_semver=$(echo "$semver_tags" | awk -v ver="$TAG" '$0 < ver { candidate=$0 } END { print candidate }')
 next_semver=$(echo "$semver_tags" | awk -v ver="$TAG" '$0 > ver { print; exit }')
+
+# Debug: show TAG, prev_semver, next_semver
+echo "DEBUG: TAG = $TAG"
+echo "DEBUG: prev_semver = $prev_semver"
+echo "DEBUG: next_semver = $next_semver"
 
 # Determine commit range
 if [ "$TAG_EXISTS" = "true" ]; then
