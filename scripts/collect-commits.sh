@@ -24,6 +24,10 @@ fi
 # Sort tags by creation date
 sorted_tags=$(git for-each-ref --sort=creatordate --format='%(refname:short)' refs/tags) || { echo "::error:: Failed Sort tags by creation date"; return 0; }
 
+semver_tags=$(git tag --list | sort -V)
+prev_semver=$(echo "$semver_tags" | awk -v ver="$TAG" '$0 < ver { candidate=$0 } END { print candidate }')
+next_semver=$(echo "$semver_tags" | awk -v ver="$TAG" '$0 > ver { print; exit }')
+
 # Determine commit range
 if [ "$TAG_EXISTS" = "true" ]; then
   previous_tag=$(echo "$sorted_tags" | grep -B1 "^$TAG$" | head -n1)
@@ -35,13 +39,15 @@ if [ "$TAG_EXISTS" = "true" ]; then
     commit_range="$previous_tag..$TAG"
   fi
 else
-  latest_tag=$(echo "$sorted_tags" | tail -n1)
-  if [ -z "$latest_tag" ]; then
-    echo "No tags found. Collecting all commits."
-    commit_range="HEAD"
+  if [ -n "$prev_semver" ] && [ -n "$next_semver" ]; then
+    echo "Collecting commits between $prev_semver and $next_semver."
+    commit_range="$prev_semver..$next_semver"
+  elif [ -n "$prev_semver" ]; then
+    echo "Collecting commits since the latest semver-tag $prev_semver to HEAD."
+    commit_range="$prev_semver..HEAD"
   else
-    echo "Collecting commits since the latest tag $latest_tag to HEAD."
-    commit_range="$latest_tag..HEAD"
+    echo "No tags found before $TAG. Collecting all commits."
+    commit_range="HEAD"
   fi
 fi
 
