@@ -21,32 +21,32 @@ else
   git fetch --tags || { echo "::error:: Failed to fetch git tags"; return 0; }
 fi
 
-# Sort tags by creation date
-sorted_tags=$(git for-each-ref --sort=creatordate --format='%(refname:short)' refs/tags) || { echo "::error:: Failed Sort tags by creation date"; return 0; }
-
-semver_tags=$(git tag --list | sort -V)
+# Sort tags numerically (SemVer) ascending
+semver_tags=$(git tag --list | sort -V) || { echo "::error:: Failed to list tags"; return 0; }
+# Derive previous and next tag based on numeric order
 prev_semver=$(echo "$semver_tags" | awk -v ver="$TAG" '$0 < ver { candidate=$0 } END { print candidate }')
 next_semver=$(echo "$semver_tags" | awk -v ver="$TAG" '$0 > ver { print; exit }')
 
 # Determine commit range
 if [ "$TAG_EXISTS" = "true" ]; then
-  previous_tag=$(echo "$sorted_tags" | grep -B1 "^$TAG$" | head -n1)
-  if [ -z "$previous_tag" ]; then
-    echo "No previous tag found. Collecting all commits up to $TAG."
-    commit_range="$TAG"
+  # If the tag already exists, use the semver-based previous tag
+  if [ -n "$prev_semver" ]; then
+    echo "Collecting commits between $prev_semver and $TAG."
+    commit_range="$prev_semver..$TAG"
   else
-    echo "Collecting commits between $previous_tag and $TAG."
-    commit_range="$previous_tag..$TAG"
+    echo "No previous semver tag found. Collecting all commits up to $TAG."
+    commit_range="$TAG"
   fi
 else
+  # If tag does not exist, handle intermediate or end-of-line cases
   if [ -n "$prev_semver" ] && [ -n "$next_semver" ]; then
     echo "Collecting commits between $prev_semver and $next_semver."
     commit_range="$prev_semver..$next_semver"
   elif [ -n "$prev_semver" ]; then
-    echo "Collecting commits since the latest semver-tag $prev_semver to HEAD."
+    echo "Collecting commits since the latest semver tag $prev_semver to HEAD."
     commit_range="$prev_semver..HEAD"
   else
-    echo "No tags found before $TAG. Collecting all commits."
+    echo "No semver tags found before $TAG. Collecting all commits."
     commit_range="HEAD"
   fi
 fi
