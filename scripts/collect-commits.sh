@@ -21,28 +21,45 @@ else
   git fetch --tags || { echo "::error:: Failed to fetch git tags"; return 0; }
 fi
 
-combined_tags=$(printf "%s\n%s\n" "$TAG" "$(git tag --list)" | sort -V) || { echo "::error:: Failed to build combined tag list"; return 0; }
+all_tags=$(git tag --list)
+
+parsed=""
+for t in $all_tags; do
+  num=$(echo "$t" | sed -E 's/^[^0-9]*([0-9]+(\.[0-9]+)*).*$/\1/')
+  parsed="$parsed"$'\n'"$num $t"
+done
+
+if ! echo "$parsed" | awk '{print $2}' | grep -xq "$TAG"; then
+  num=$(echo "$TAG" | sed -E 's/^[^0-9]*([0-9]+(\.[0-9]+)*).*$/\1/')
+  parsed="$parsed"$'\n'"$num $TAG"
+fi
+
+sorted_pairs=$(echo "$parsed" | sed '/^$/d' | sort -k1,1V)
+
+echo "DEBUG: sorted_pairs (num tag):"
+echo "$sorted_pairs"
 
 prev_semver=""
 next_semver=""
-found=""
+last=""
+found=false
 
-while IFS= read -r t; do
-  if [ "$t" = "$TAG" ] && [ -z "$found" ]; then
-    found="yes"
+while read -r num t; do
+  if [ "$t" = "$TAG" ]; then
+    prev_semver="$last"
+    found=true
     continue
   fi
-
-  if [ -z "$found" ]; then
-    prev_semver="$t"
-  elif [ -z "$next_semver" ]; then
+  if [ "$found" = "true" ] && [ -z "$next_semver" ]; then
     next_semver="$t"
     break
   fi
-done <<EOF
-$combined_tags
-EOF
+  last="$t"
+done <<< "$sorted_pairs"
 
+echo "DEBUG: TAG = $TAG"
+echo "DEBUG: prev_semver = $prev_semver"
+echo "DEBUG: next_semver = $next_semver"
 
 # Determine commit range
 if [ "$TAG_EXISTS" = "true" ]; then
@@ -50,7 +67,7 @@ if [ "$TAG_EXISTS" = "true" ]; then
     echo "Collecting commits between $prev_semver and $TAG."
     commit_range="$prev_semver..$TAG"
   else
-    echo "No previous semver tag found. Collecting all commits up to $TAG."
+    echo "No previous semver-like tag found. Collecting all commits up to $TAG."
     commit_range="$TAG"
   fi
 else
@@ -58,10 +75,10 @@ else
     echo "Collecting commits between $prev_semver and $next_semver."
     commit_range="$prev_semver..$next_semver"
   elif [ -n "$prev_semver" ]; then
-    echo "Collecting commits since the latest semver tag $prev_semver to HEAD."
+    echo "Collecting commits since the latest semver-like tag $prev_semver to HEAD."
     commit_range="$prev_semver..HEAD"
   else
-    echo "No semver tags found before $TAG. Collecting all commits."
+    echo "No semver-like tags found before $TAG. Collecting all commits."
     commit_range="HEAD"
   fi
 fi
