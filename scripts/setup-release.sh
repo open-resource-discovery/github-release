@@ -8,7 +8,6 @@ git config --global user.name "${GITHUB_ACTOR}"
 git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
-FALLBACK_VERSION="${FALLBACK_VERSION:-}"
 TAG_TEMPLATE="${TAG_TEMPLATE:-}"
 
 # Check if the changelog file exists
@@ -23,15 +22,15 @@ if [ ! -f "$CHANGELOG_FILE_PATH" ]; then
 fi
 
 # Determine the version and tag
-if [ -f "package.json" ]; then
+if [ -n "$VERSION_OVERRIDE" ]; then
+  version="$VERSION_OVERRIDE"
+  echo "Using custom version override: $version"
+elif [ -f "package.json" ]; then
   version=$(jq -r '.version' package.json)
-else
-  echo "package.json not found. Using fallback version."
-  version="$FALLBACK_VERSION"
 fi
 
 if [ -z "$version" ] || [ "$version" = "null" ]; then
-  echo "Error: No version found in package.json and no fallback version provided."
+  echo "Error: Mandatory "version" parameter has not been specified. Please check GitHub Action configuration."
   exit 1
 fi
 
