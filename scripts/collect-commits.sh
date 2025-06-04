@@ -37,9 +37,6 @@ sorted_pairs=$(echo "$parsed" | sort -t. -k1,1n -k2,2n -k3,3n)
 
 sorted_tags=$(echo "$sorted_pairs" | awk '{print $2}')
 
-echo "DEBUG: sorted_tags (numeric):"
-echo "$sorted_tags"
-
 prev_semver=""
 next_semver=""
 found=false
@@ -55,11 +52,6 @@ for t in $sorted_tags; do
     break
   fi
 done
-
-# DEBUG: relevante Werte
-echo "DEBUG: TAG         = $TAG"
-echo "DEBUG: prev_semver = $prev_semver"
-echo "DEBUG: next_semver = $next_semver"
 
 # Determine commit range
 if [ "$TAG_EXISTS" = "true" ]; then
