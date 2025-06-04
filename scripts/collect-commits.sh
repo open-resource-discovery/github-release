@@ -21,29 +21,31 @@ else
   git fetch --tags || { echo "::error:: Failed to fetch git tags"; return 0; }
 fi
 
-# Sort tags numerically (SemVer) ascending and include TAG itself
-all_tags=$(printf "%s\n%s\n" "$TAG" "$(git tag --list)" | sort -V) || { echo "::error:: Failed to build combined tag list"; return 0; }
-
-# Load into array to be able to access prev/next via index
-mapfile -t arr < <(printf "%s\n" "$all_tags")
+combined_tags=$(printf "%s\n%s\n" "$TAG" "$(git tag --list)" | sort -V) || { echo "::error:: Failed to build combined tag list"; return 0; }
 
 prev_semver=""
 next_semver=""
-for i in "${!arr[@]}"; do
-  if [ "${arr[$i]}" = "$TAG" ]; then
-    if [ "$i" -gt 0 ]; then
-      prev_semver="${arr[$((i-1))]}"
-    fi
-    if [ "$i" -lt "$(( ${#arr[@]} - 1 ))" ]; then
-      next_semver="${arr[$((i+1))]}"
-    fi
+found=""
+
+while IFS= read -r t; do
+  if [ "$t" = "$TAG" ] && [ -z "$found" ]; then
+    found="yes"
+    continue
+  fi
+
+  if [ -z "$found" ]; then
+    prev_semver="$t"
+  elif [ -z "$next_semver" ]; then
+    next_semver="$t"
     break
   fi
-done
+done <<EOF
+$combined_tags
+EOF
+
 
 # Determine commit range
 if [ "$TAG_EXISTS" = "true" ]; then
-  # If the tag already exists, commit range from prev_semver to TAG
   if [ -n "$prev_semver" ]; then
     echo "Collecting commits between $prev_semver and $TAG."
     commit_range="$prev_semver..$TAG"
@@ -52,7 +54,6 @@ if [ "$TAG_EXISTS" = "true" ]; then
     commit_range="$TAG"
   fi
 else
-  # If tag is new, check for intermediate tag case
   if [ -n "$prev_semver" ] && [ -n "$next_semver" ]; then
     echo "Collecting commits between $prev_semver and $next_semver."
     commit_range="$prev_semver..$next_semver"
