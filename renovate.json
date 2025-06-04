@@ -9,7 +9,7 @@
   "enabledManagers": ["npm", "dockerfile"],
   "branchPrefix": "deps/",
   "timezone": "Europe/Berlin",
-  "schedule": ["at any time"],
+  "schedule": ["every weekend"],
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
   "packageRules": [
