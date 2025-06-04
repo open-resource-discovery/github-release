@@ -21,42 +21,28 @@ else
   git fetch --tags || { echo "::error:: Failed to fetch git tags"; return 0; }
 fi
 
-all_tags=$(git tag --list)
-
-parsed=""
-for t in $all_tags; do
-  num=$(echo "$t" | sed -E 's/^[^0-9]*([0-9]+(\.[0-9]+)*).*$/\1/')
-  parsed="$parsed"$'\n'"$num $t"
-done
-
-if ! echo "$parsed" | awk '{print $2}' | grep -xq "$TAG"; then
-  num=$(echo "$TAG" | sed -E 's/^[^0-9]*([0-9]+(\.[0-9]+)*).*$/\1/')
-  parsed="$parsed"$'\n'"$num $TAG"
-fi
-
-sorted_pairs=$(echo "$parsed" | sed '/^$/d' | sort -k1,1V)
-
-echo "DEBUG: sorted_pairs (num tag):"
-echo "$sorted_pairs"
+sorted_semver_tags=$(git tag --list --sort=v:refname)
 
 prev_semver=""
 next_semver=""
-last=""
 found=false
 
-while read -r num t; do
+for t in $sorted_semver_tags; do
   if [ "$t" = "$TAG" ]; then
-    prev_semver="$last"
     found=true
     continue
   fi
-  if [ "$found" = "true" ] && [ -z "$next_semver" ]; then
+
+  if [ "$found" = false ]; then
+    prev_semver="$t"
+  elif [ -z "$next_semver" ]; then
     next_semver="$t"
     break
   fi
-  last="$t"
-done <<< "$sorted_pairs"
+done
 
+echo "DEBUG: sorted_semver_tags:"
+echo "$sorted_semver_tags"
 echo "DEBUG: TAG = $TAG"
 echo "DEBUG: prev_semver = $prev_semver"
 echo "DEBUG: next_semver = $next_semver"
