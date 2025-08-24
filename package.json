@@ -23,7 +23,7 @@
   "dependencies": {
     "@actions/core": "1.11.1",
     "@actions/github": "6.0.1",
-    "tsx": "4.20.4"
+    "tsx": "4.20.5"
   },
   "devDependencies": {
     "@jest/globals": "30.0.5",
