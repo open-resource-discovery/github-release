@@ -30,7 +30,7 @@
     "@sap/eslint-config": "0.4.0",
     "@tsconfig/node22": "22.0.2",
     "@types/jest": "30.0.0",
-    "@types/node": "22.18.0",
+    "@types/node": "22.18.1",
     "eslint": "9.34.0",
     "jest": "30.1.1",
     "jest-environment-node": "30.1.1",
