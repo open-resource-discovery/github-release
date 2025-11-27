@@ -7,6 +7,12 @@ git config --global --add safe.directory /github/workspace
 git config --global user.name "${GITHUB_ACTOR}"
 git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
+# Configure Git to use GITHUB_TOKEN for HTTPS fetches
+if [ -n "$GITHUB_TOKEN" ] && [ -n "$GITHUB_SERVER_URL" ]; then
+  GIT_HOST="${GITHUB_SERVER_URL#https://}"
+  git config --global url."https://x-access-token:${GITHUB_TOKEN}@${GIT_HOST}/".insteadOf "https://${GIT_HOST}/"
+fi
+
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 TAG_TEMPLATE="${TAG_TEMPLATE:-}"
 
