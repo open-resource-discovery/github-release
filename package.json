@@ -21,8 +21,8 @@
     "prettier:ci": "prettier --check \"**/*.{json,yml,yaml,md}\""
   },
   "dependencies": {
-    "@actions/core": "2.0.3",
-    "@actions/github": "7.0.0",
+    "@actions/core": "3.0.0",
+    "@actions/github": "9.0.0",
     "tsx": "4.21.0"
   },
   "devDependencies": {
