@@ -52,21 +52,26 @@ if [ "$DRY_RUN" = "true" ]; then
   echo "Would have sent API request with title: '$pr_title' and branch '$branch_name'."
   pr_url="https://github.com/$GITHUB_REPOSITORY/pull/dry-run-placeholder"
 else
-  response=$(curl -s -X POST \
+  response_file=$(mktemp)
+  http_code=$(curl -sS -o "$response_file" -w "%{http_code}" -X POST \
     -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Accept: application/vnd.github+json" \
     -d "{\"title\":\"$pr_title\",\"head\":\"$branch_name\",\"base\":\"$TARGET_BRANCH\",\"body\":\"$pr_body\"}" \
     "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls")
 
-  if ! echo "$response" | jq empty > /dev/null 2>&1; then
-    echo "::error:: Invalid GitHub API response: $response"
+  response=$(cat "$response_file")
+  rm -f "$response_file"
+
+  if [ "$http_code" != "201" ]; then
+    echo "::error:: PR creation failed (HTTP $http_code): $response"
     exit 1
   fi
 
   pr_url=$(echo "$response" | jq -r '.html_url // empty')
 
   if [ -z "$pr_url" ] || [ "$pr_url" = "null" ]; then
-    echo "::warning:: Failed to extract PR URL. Check API response."
+    echo "::error:: PR was created but html_url is missing: $response"
+    exit 1
   fi
 fi
 
