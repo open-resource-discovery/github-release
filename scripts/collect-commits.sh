@@ -33,7 +33,7 @@ git tag --list | while IFS= read -r t; do
   [ -n "$ver" ] && printf '%s %s\n' "$ver" "$t" >> "$parsed_file"
 done
 
-if ! git tag --list | grep -xq "$TAG"; then
+if ! git tag --list | grep -Fxq "$TAG"; then
   ver=$(printf '%s\n' "$TAG" | sed -n 's/^[^0-9]*\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*$/\1/p')
   [ -n "$ver" ] && printf '%s %s\n' "$ver" "$TAG" >> "$parsed_file"
 fi
