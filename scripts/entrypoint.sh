@@ -13,7 +13,10 @@ export TAG_TEMPLATE="$(printenv INPUT_TAG-TEMPLATE)"
 echo "TAG_TEMPLATE=$TAG_TEMPLATE" | tee -a "$GITHUB_ENV"
 
 export GITHUB_TOKEN="$(printenv INPUT_GITHUB-TOKEN)"
-echo "GITHUB_TOKEN=$(printenv INPUT_GITHUB-TOKEN)" | tee -a "$GITHUB_ENV"
+if [ -n "$GITHUB_TOKEN" ]; then
+  echo "::add-mask::$GITHUB_TOKEN"
+fi
+echo "GITHUB_TOKEN is set."
 
 export RELEASE_DRAFT="$(printenv INPUT_RELEASE-DRAFT)"
 echo "RELEASE_DRAFT=$(printenv INPUT_RELEASE-DRAFT)" | tee -a "$GITHUB_ENV"

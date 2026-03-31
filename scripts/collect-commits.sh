@@ -6,7 +6,19 @@ BASE_URL="$GITHUB_SERVER_URL"
 BASE_API_URL="$GITHUB_API_URL"
 REPO="$GITHUB_REPOSITORY"
 
-git fetch origin "$TARGET_BRANCH"
+sync_git_state() {
+  echo "Refreshing branch and tags from origin..."
+  git fetch --prune origin "+refs/heads/*:refs/remotes/origin/*"
+  git fetch --prune --prune-tags origin "+refs/tags/*:refs/tags/*"
+}
+
+# Refresh local refs before calculating ranges or contributors.
+# This prevents stale branches/tags after force-pushes or history rewrites.
+if [ "$DRY_RUN" = "true" ]; then
+  echo "Dry-Run: Skipping remote sync."
+else
+  sync_git_state
+fi
 
 # Skip commit and contributor collection if the release already exists
 if [ "$RELEASE_EXISTS" = "true" ]; then
@@ -14,26 +26,20 @@ if [ "$RELEASE_EXISTS" = "true" ]; then
   exit 1
 fi
 
-# Fetch all git tags
-if [ "$DRY_RUN" = "true" ]; then
-  echo "Dry-Run: Skipping 'git fetch --tags'."
-else
-  git fetch --tags || { echo "::error:: Failed to fetch git tags"; return 0; }
-fi
+parsed_file=$(mktemp)
 
-parsed=""
-for t in $(git tag --list); do
-  ver=$(echo "$t" | sed -E 's/^[^0-9]*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')
-  parsed="$parsed"$'\n'"$ver $t"
+git tag --list | while IFS= read -r t; do
+  ver=$(printf '%s\n' "$t" | sed -n 's/^[^0-9]*\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*$/\1/p')
+  [ -n "$ver" ] && printf '%s %s\n' "$ver" "$t" >> "$parsed_file"
 done
 
-if ! git tag --list | grep -xq "$TAG"; then
-  ver=$(echo "$TAG" | sed -E 's/^[^0-9]*([0-9]+\.[0-9]+\.[0-9]+).*$/\1/')
-  parsed="$parsed"$'\n'"$ver $TAG"
+if ! git tag --list | grep -Fxq "$TAG"; then
+  ver=$(printf '%s\n' "$TAG" | sed -n 's/^[^0-9]*\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*$/\1/p')
+  [ -n "$ver" ] && printf '%s %s\n' "$ver" "$TAG" >> "$parsed_file"
 fi
 
-parsed=$(echo "$parsed" | sed '/^$/d')
-sorted_pairs=$(echo "$parsed" | sort -t. -k1,1n -k2,2n -k3,3n)
+sorted_pairs=$(sort -t. -k1,1n -k2,2n -k3,3n "$parsed_file")
+rm -f "$parsed_file"
 
 sorted_tags=$(echo "$sorted_pairs" | awk '{print $2}')
 
@@ -82,7 +88,7 @@ if [ -z "$commit_range" ]; then
 fi
 
 # Collect commit log and contributors
-commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%h|%an|%ae") || { echo "::error:: commit data failed"; return 0; }
+commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%H|%an|%ae") || { echo "::error:: commit data failed"; return 0; }
 if [ -z "$commit_data" ]; then
   echo "No commits found in the specified range."   
   commit_log="* No changes since last release."
@@ -124,14 +130,19 @@ else
 
   # Prepare contributors list with profile pictures
   contributor_details="<table><tr>"
+  seen_logins=""
   for email in $commit_emails; do
+    login=""
+    full_name=""
+    profile_url=""
+    avatar_url=""
 
     if echo "$email" | grep -q '\[bot\]'; then
       echo "Skipping bot user: $email"
       continue
     fi
 
-  commit_sha=$(echo "$commit_data" | grep "$email" | awk -F"|" '{print $1}' | head -n1)
+  commit_sha=$(echo "$commit_data" | awk -F"|" -v email="$email" '$3 == email { print $1; exit }')
 
   if [ -n "$commit_sha" ]; then
 
@@ -151,6 +162,14 @@ else
     echo "::warning:: No valid GitHub user found for email $email or commit lookup. Skipping..."
     continue
   fi
+
+  case " $seen_logins " in
+    *" $login "*)
+      echo "Skipping duplicate contributor login: $login"
+      continue
+      ;;
+  esac
+  seen_logins="$seen_logins $login"
 
   # Fetch GitHub user details
   user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \

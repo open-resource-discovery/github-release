@@ -4,7 +4,7 @@ set -e  # Stop the script if any command fails
 # Define variables
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 VERSION_LINK="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/$TAG"
-git fetch origin "$TARGET_BRANCH"
+git fetch --prune origin "+refs/heads/*:refs/remotes/origin/*"
 
 if ! git diff --quiet origin/"$TARGET_BRANCH" -- "$CHANGELOG_FILE_PATH"; then
   echo "Local CHANGELOG.md is outdated."

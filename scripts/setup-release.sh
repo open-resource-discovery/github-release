@@ -64,6 +64,15 @@ echo "Version set to: $version ($tag)"
 echo "RELEASE_TITLE=$RELEASE_TITLE" | tee -a $GITHUB_ENV
 export RELEASE_TITLE="$RELEASE_TITLE"
 
+# Refresh local refs before checking tags so force-pushes/history rewrites
+# do not leave stale tags behind.
+if [ "$DRY_RUN" = "true" ]; then
+  echo "Dry-Run: Skipping remote tag sync."
+else
+  git fetch --prune origin "+refs/heads/*:refs/remotes/origin/*"
+  git fetch --prune --prune-tags origin "+refs/tags/*:refs/tags/*"
+fi
+
 # Check if the tag already exists
 if git rev-parse --verify "refs/tags/$TAG" >/dev/null 2>&1 || \
    git rev-parse --verify "refs/tags/ms/$TAG" >/dev/null 2>&1; then
@@ -74,13 +83,6 @@ else
   echo "Tag $TAG does not exist."
   echo "TAG_EXISTS=false" | tee -a $GITHUB_ENV
   export TAG_EXISTS=false
-fi
-
-# Fetch all git tags
-if [ "$DRY_RUN" = "true" ]; then
-  echo "Dry-Run: Skipping 'git fetch --tags'."
-else
-  git fetch --tags
 fi
 
 # Check if a release already exists for the tag

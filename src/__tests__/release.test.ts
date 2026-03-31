@@ -1,4 +1,6 @@
-import { getOctokit } from "@actions/github";
+import * as fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
   afterEach,
   beforeEach,
@@ -7,154 +9,138 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { createRelease } from "../release.js";
+import {
+  __getCreateReleaseCalls,
+  __resetGithubMock,
+  __setCreateReleaseHandler,
+  __setRepoContext,
+} from "./mocks/actions-github.js";
 
-const mockCreateRelease: jest.Mock = jest.fn();
-
-jest.mock("@actions/github", () => {
-  return {
-    getOctokit: jest.fn(() => ({
-      rest: {
-        repos: {
-          createRelease: mockCreateRelease,
-        },
-      },
-    })),
-    context: {
-      repo: { owner: "test-owner", repo: "test-repo" },
-    },
-  };
-});
-/* eslint-disable @typescript-eslint/naming-convention */
-async function runCreateRelease(): Promise<string> {
-  try {
-    const { getOctokit, context } = await import("@actions/github");
-    const token = process.env.GITHUB_TOKEN;
-    if (!token) {
-      const errorMessage =
-        "Error creating release: GITHUB_TOKEN is required but not set.";
-      process.stderr.write(errorMessage + "\n");
-      throw new Error(errorMessage);
-    }
-
-    const octokit = getOctokit(token);
-    const { owner, repo } = context.repo;
-
-    const tag_name = process.env.TAG;
-    if (!tag_name) {
-      const errorMessage =
-        "Error creating release: Tag name is required but not set.";
-      process.stderr.write(errorMessage + "\n");
-      throw new Error(errorMessage);
-    }
-
-    const target_commitish = process.env.TARGET_BRANCH || "main";
-    const name = process.env.RELEASE_TITLE || `Release ${tag_name}`;
-    const body = process.env.RELEASE_BODY || "";
-    const draft = process.env.RELEASE_DRAFT === "true";
-    const prerelease = process.env.RELEASE_PRERELEASE === "true";
-
-    process.stdout.write(
-      `Creating release for tag: ${tag_name} in ${owner}/${repo}\n`,
-    );
-
-    let release;
-    try {
-      release = await octokit.rest.repos.createRelease({
-        owner,
-        repo,
-        tag_name,
-        target_commitish,
-        name,
-        body,
-        draft,
-        prerelease,
-      });
-    } catch (error) {
-      throw new Error(
-        `GitHub API error: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
-
-    if (!release?.data?.html_url) {
-      throw new Error("GitHub API error: Response is missing 'data.html_url'");
-    }
-
-    process.stdout.write(`Release created: ${release.data.html_url}\n`);
-
-    return release.data.html_url;
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "An unknown error occurred.";
-    process.stderr.write(`Error creating release: ${errorMessage}\n`);
-    throw new Error(`Error creating release: ${errorMessage}`);
-  }
-}
-
-describe("GitHub Release Tests", () => {
-  let mockCreateRelease: jest.Mock;
-  let stderrSpy: jest.SpiedFunction<typeof process.stderr.write>;
+describe("createRelease", () => {
+  const originalEnv: NodeJS.ProcessEnv = { ...process.env };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    __resetGithubMock();
+    jest.restoreAllMocks();
+    process.env = { ...originalEnv };
+
+    delete process.env.GITHUB_OUTPUT;
+    delete process.env.TARGET_BRANCH;
+    delete process.env.RELEASE_TITLE;
+    delete process.env.RELEASE_BODY;
+    delete process.env.RELEASE_DRAFT;
+    delete process.env.RELEASE_PRERELEASE;
 
     process.env.GITHUB_TOKEN = "test-token";
-
-    stderrSpy = jest
-      .spyOn(process.stderr, "write")
-      .mockImplementation(() => true);
-
-    const mockedOctokit = getOctokit("fake-token");
-    mockCreateRelease = jest.spyOn(
-      mockedOctokit.rest.repos,
-      "createRelease",
-    ) as jest.Mock;
-    mockCreateRelease.mockImplementation(() => ({
-      data: { html_url: "https://github.com/test/release" },
-    }));
+    process.env.TAG = "v1.2.3";
   });
 
   afterEach(() => {
+    process.env = { ...originalEnv };
     jest.restoreAllMocks();
   });
 
-  test("should fail if GITHUB_TOKEN is missing", async () => {
+  test("creates a release with default values and writes GITHUB_OUTPUT", async () => {
+    __setRepoContext("open-resource-discovery", "github-release");
+
+    const githubOutput = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), "github-release-test-")),
+      "github-output.txt",
+    );
+
+    process.env.GITHUB_OUTPUT = githubOutput;
+
+    const releaseUrl = await createRelease();
+
+    expect(releaseUrl).toBe(
+      "https://github.com/open-resource-discovery/github-release/releases/tag/v1.2.3",
+    );
+
+    expect(__getCreateReleaseCalls()).toEqual([
+      {
+        owner: "open-resource-discovery",
+        repo: "github-release",
+        tag_name: "v1.2.3",
+        target_commitish: "main",
+        name: "v1.2.3",
+        body: "",
+        draft: false,
+        prerelease: false,
+      },
+    ]);
+
+    expect(fs.readFileSync(githubOutput, "utf8")).toBe(
+      "release-url=https://github.com/open-resource-discovery/github-release/releases/tag/v1.2.3\n",
+    );
+  });
+
+  test("uses custom release input values", async () => {
+    __setRepoContext("acme", "specification");
+
+    process.env.TARGET_BRANCH = "release/1.x";
+    process.env.RELEASE_TITLE = "Release 1.2.3";
+    process.env.RELEASE_BODY = "Important changes";
+    process.env.RELEASE_DRAFT = "true";
+    process.env.RELEASE_PRERELEASE = "true";
+
+    const releaseUrl = await createRelease();
+
+    expect(releaseUrl).toBe(
+      "https://github.com/acme/specification/releases/tag/v1.2.3",
+    );
+
+    expect(__getCreateReleaseCalls()).toEqual([
+      {
+        owner: "acme",
+        repo: "specification",
+        tag_name: "v1.2.3",
+        target_commitish: "release/1.x",
+        name: "Release 1.2.3",
+        body: "Important changes",
+        draft: true,
+        prerelease: true,
+      },
+    ]);
+  });
+
+  test("fails if GITHUB_TOKEN is missing", async () => {
     delete process.env.GITHUB_TOKEN;
 
-    await expect(runCreateRelease()).rejects.toThrow(
-      "Error creating release: GITHUB_TOKEN is required but not set.",
+    await expect(createRelease()).rejects.toThrow(
+      "GITHUB_TOKEN is required but not set.",
     );
-    expect(stderrSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "Error creating release: GITHUB_TOKEN is required but not set.\n",
-      ),
-    );
+
+    expect(__getCreateReleaseCalls()).toHaveLength(0);
   });
 
-  test("should fail if TAG is missing", async () => {
+  test("fails if TAG is missing", async () => {
     delete process.env.TAG;
 
-    await expect(runCreateRelease()).rejects.toThrow(
-      "Tag name is required but not set.",
+    await expect(createRelease()).rejects.toThrow(
+      "TAG is required but not set.",
     );
-    expect(stderrSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        "Error creating release: Tag name is required but not set.",
-      ),
-    );
+
+    expect(__getCreateReleaseCalls()).toHaveLength(0);
   });
 
-  test("should fail if GitHub API request fails", async () => {
-    process.env.TAG = "v1.0.0";
-
-    mockCreateRelease.mockImplementation(() =>
+  test("fails if the GitHub API call throws", async () => {
+    __setCreateReleaseHandler(() =>
       Promise.reject(new Error("GitHub API error")),
     );
 
-    await expect(runCreateRelease()).rejects.toThrow(
-      "Error creating release: GitHub API error",
+    await expect(createRelease()).rejects.toThrow("GitHub API error");
+
+    expect(__getCreateReleaseCalls()).toHaveLength(1);
+  });
+
+  test("fails if the response has no html_url", async () => {
+    __setCreateReleaseHandler(() => Promise.resolve({ data: {} }));
+
+    await expect(createRelease()).rejects.toThrow(
+      "Release response is missing html_url.",
     );
-    expect(stderrSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Error creating release: GitHub API error"),
-    );
+
+    expect(__getCreateReleaseCalls()).toHaveLength(1);
   });
 });
