@@ -2,10 +2,10 @@ import { getOctokit, context } from "@actions/github";
 import * as fs from "node:fs";
 
 /* eslint-disable @typescript-eslint/naming-convention */
-function getRequiredEnv(name: "GITHUB_TOKEN" | "TAG"): string {
+function getRequiredEnv(name: string): string {
   const value = process.env[name];
 
-  if (!value) {
+  if (value === undefined || value === "") {
     throw new Error(`${name} is required but not set.`);
   }
 
@@ -42,7 +42,7 @@ export async function createRelease(): Promise<string> {
 
   const releaseUrl = release.data.html_url;
 
-  if (!releaseUrl) {
+  if (releaseUrl === undefined || releaseUrl === "") {
     throw new Error("Release response is missing html_url.");
   }
 
