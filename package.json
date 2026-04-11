@@ -28,7 +28,7 @@
   "devDependencies": {
     "@jest/globals": "30.3.0",
     "@sap/eslint-config": "0.5.1",
-    "@tsconfig/node22": "22.0.5",
+    "@tsconfig/node24": "24.0.0",
     "@types/jest": "30.0.0",
     "@types/node": "24.12.2",
     "eslint": "10.2.0",
