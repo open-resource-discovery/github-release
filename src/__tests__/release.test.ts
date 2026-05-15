@@ -12,6 +12,7 @@ import {
 import { createRelease } from "../release.js";
 import {
   __getCreateReleaseCalls,
+  __getOctokitTokens,
   __resetGithubMock,
   __setCreateReleaseHandler,
   __setRepoContext,
@@ -19,6 +20,15 @@ import {
 
 describe("createRelease", () => {
   const originalEnv: NodeJS.ProcessEnv = { ...process.env };
+  const tempDirs: string[] = [];
+
+  function createGithubOutputFilePath(): string {
+    const tempDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "github-release-test-"),
+    );
+    tempDirs.push(tempDir);
+    return path.join(tempDir, "github-output.txt");
+  }
 
   beforeEach(() => {
     __resetGithubMock();
@@ -39,16 +49,16 @@ describe("createRelease", () => {
   afterEach(() => {
     process.env = { ...originalEnv };
     jest.restoreAllMocks();
+
+    for (const tempDir of tempDirs.splice(0)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   test("creates a release with default values and writes GITHUB_OUTPUT", async () => {
     __setRepoContext("open-resource-discovery", "github-release");
 
-    const githubOutput = path.join(
-      fs.mkdtempSync(path.join(os.tmpdir(), "github-release-test-")),
-      "github-output.txt",
-    );
-
+    const githubOutput = createGithubOutputFilePath();
     process.env.GITHUB_OUTPUT = githubOutput;
 
     const releaseUrl = await createRelease();
@@ -56,6 +66,8 @@ describe("createRelease", () => {
     expect(releaseUrl).toBe(
       "https://github.com/open-resource-discovery/github-release/releases/tag/v1.2.3",
     );
+
+    expect(__getOctokitTokens()).toEqual(["test-token"]);
 
     expect(__getCreateReleaseCalls()).toEqual([
       {
@@ -90,6 +102,8 @@ describe("createRelease", () => {
       "https://github.com/acme/specification/releases/tag/v1.2.3",
     );
 
+    expect(__getOctokitTokens()).toEqual(["test-token"]);
+
     expect(__getCreateReleaseCalls()).toEqual([
       {
         owner: "acme",
@@ -104,6 +118,26 @@ describe("createRelease", () => {
     ]);
   });
 
+  test("only exact string true enables draft and prerelease", async () => {
+    process.env.RELEASE_DRAFT = "TRUE";
+    process.env.RELEASE_PRERELEASE = "1";
+
+    await createRelease();
+
+    expect(__getCreateReleaseCalls()).toEqual([
+      {
+        owner: "test-owner",
+        repo: "test-repo",
+        tag_name: "v1.2.3",
+        target_commitish: "main",
+        name: "v1.2.3",
+        body: "",
+        draft: false,
+        prerelease: false,
+      },
+    ]);
+  });
+
   test("fails if GITHUB_TOKEN is missing", async () => {
     delete process.env.GITHUB_TOKEN;
 
@@ -111,6 +145,18 @@ describe("createRelease", () => {
       "GITHUB_TOKEN is required but not set.",
     );
 
+    expect(__getOctokitTokens()).toHaveLength(0);
+    expect(__getCreateReleaseCalls()).toHaveLength(0);
+  });
+
+  test("fails if GITHUB_TOKEN is empty", async () => {
+    process.env.GITHUB_TOKEN = "";
+
+    await expect(createRelease()).rejects.toThrow(
+      "GITHUB_TOKEN is required but not set.",
+    );
+
+    expect(__getOctokitTokens()).toHaveLength(0);
     expect(__getCreateReleaseCalls()).toHaveLength(0);
   });
 
@@ -121,6 +167,18 @@ describe("createRelease", () => {
       "TAG is required but not set.",
     );
 
+    expect(__getOctokitTokens()).toHaveLength(0);
+    expect(__getCreateReleaseCalls()).toHaveLength(0);
+  });
+
+  test("fails if TAG is empty", async () => {
+    process.env.TAG = "";
+
+    await expect(createRelease()).rejects.toThrow(
+      "TAG is required but not set.",
+    );
+
+    expect(__getOctokitTokens()).toHaveLength(0);
     expect(__getCreateReleaseCalls()).toHaveLength(0);
   });
 
@@ -131,11 +189,24 @@ describe("createRelease", () => {
 
     await expect(createRelease()).rejects.toThrow("GitHub API error");
 
+    expect(__getOctokitTokens()).toEqual(["test-token"]);
     expect(__getCreateReleaseCalls()).toHaveLength(1);
   });
 
   test("fails if the response has no html_url", async () => {
     __setCreateReleaseHandler(() => Promise.resolve({ data: {} }));
+
+    await expect(createRelease()).rejects.toThrow(
+      "Release response is missing html_url.",
+    );
+
+    expect(__getCreateReleaseCalls()).toHaveLength(1);
+  });
+
+  test("fails if the response has an empty html_url", async () => {
+    __setCreateReleaseHandler(() =>
+      Promise.resolve({ data: { html_url: "" } }),
+    );
 
     await expect(createRelease()).rejects.toThrow(
       "Release response is missing html_url.",
