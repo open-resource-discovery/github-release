@@ -88,7 +88,8 @@ if [ -z "$commit_range" ]; then
 fi
 
 # Collect commit log and contributors
-commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%H|%an|%ae") || { echo "::error:: commit data failed"; return 0; }
+field_sep=$(printf '\037')
+commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%H${field_sep}%h${field_sep}%an${field_sep}%ae${field_sep}%s") || { echo "::error:: commit data failed"; return 0; }
 if [ -z "$commit_data" ]; then
   echo "No commits found in the specified range."   
   commit_log="* No changes since last release."
@@ -97,118 +98,51 @@ if [ -z "$commit_data" ]; then
     echo "Dry-Run: Skipping writing 'commit_log.txt' and 'contributors.txt'."
   else
     echo "$commit_log" > commit_log.txt
-    echo "<table><tr><td>No contributors found</td></tr></table>" > contributors.txt
+    : > contributors.txt
   fi
   return 0
 fi
 
 # Collect commit log
-commit_log=$(git log "$commit_range" --max-count=30 --pretty=format:"* [%h]($BASE_URL/$REPO/commit/%H) %s (%an)")
-log_status=$?
+# Build GitHub-native release notes with @mentions.
+commit_log_file=$(mktemp)
+contributors_mentions_file=$(mktemp)
+seen_logins_file=$(mktemp)
 
-if [ $log_status -ne 0 ]; then
-  echo "::error:: git log failed with exit code $log_status"
-  echo "::error:: commit_range was '$commit_range'"
-  return 0
-fi
+printf '%s\n' "$commit_data" | while IFS="$field_sep" read -r commit_sha short_sha author_name author_email subject; do
+  [ -z "$commit_sha" ] && continue
 
-# Extract unique contributor emails and commit hashes
-commit_emails=$(echo "$commit_data" | awk -F"|" '{print $3}' | sort | uniq)
+  login=""
+  commit_url="$BASE_URL/$REPO/commit/$commit_sha"
 
-# Save commit log to a file
-if [ "$DRY_RUN" = "true" ]; then
-  echo "Dry-Run: Skipping writing 'commit_log.txt'."
-else
-  echo "$commit_log" > commit_log.txt
-fi
+  commit_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                          -H "Accept: application/vnd.github+json" \
+                          "$BASE_API_URL/repos/$REPO/commits/$commit_sha")
 
-# Skip contributor collection in dry-run mode
-if [ "$DRY_RUN" = "true" ]; then
-  echo "Dry-Run: Skipping contributor collection."
-  contributor_details="<table><tr><td>Dry-Run: Contributor collection skipped</td></tr></table>"
-else
+  if printf '%s\n' "$commit_response" | jq empty > /dev/null 2>&1; then
+    login=$(printf '%s\n' "$commit_response" | jq -r '.author.login // empty')
+  fi
 
-  # Prepare contributors list with profile pictures
-  contributor_details="<table><tr>"
-  seen_logins=""
-  for email in $commit_emails; do
-    login=""
-    full_name=""
-    profile_url=""
-    avatar_url=""
+  if [ -n "$login" ] && [ "$login" != "empty" ] && ! printf '%s\n' "$author_email" | grep -q '\[bot\]'; then
+    printf '* %s by @%s in [%s](%s)\n' "$subject" "$login" "$short_sha" "$commit_url" >> "$commit_log_file"
 
-    if echo "$email" | grep -q '\[bot\]'; then
-      echo "Skipping bot user: $email"
-      continue
-    fi
-
-  commit_sha=$(echo "$commit_data" | awk -F"|" -v email="$email" '$3 == email { print $1; exit }')
-
-  if [ -n "$commit_sha" ]; then
-
-    commit_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                            -H "Accept: application/vnd.github+json" \
-                            "$BASE_API_URL/repos/$REPO/commits/$commit_sha")
-
-    if echo "$commit_response" | jq empty > /dev/null 2>&1; then
-      login=$(echo "$commit_response" | jq -r '.author.login // empty')
+    if ! grep -Fxq -- "$login" "$seen_logins_file"; then
+      printf '%s\n' "$login" >> "$seen_logins_file"
+      printf '@%s\n' "$login" >> "$contributors_mentions_file"
     fi
   else
-    echo "::warning:: No commit SHA found for email $email. Skipping commit lookup."
+    printf '* %s by %s in [%s](%s)\n' "$subject" "$author_name" "$short_sha" "$commit_url" >> "$commit_log_file"
   fi
-
-  # Step 3: Final check
-  if [ -z "$login" ] || [ "$login" = "empty" ]; then
-    echo "::warning:: No valid GitHub user found for email $email or commit lookup. Skipping..."
-    continue
-  fi
-
-  case " $seen_logins " in
-    *" $login "*)
-      echo "Skipping duplicate contributor login: $login"
-      continue
-      ;;
-  esac
-  seen_logins="$seen_logins $login"
-
-  # Fetch GitHub user details
-  user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                         -H "Accept: application/vnd.github+json" \
-                         "$BASE_API_URL/users/$login")
-
-
-  if echo "$user_response" | jq empty > /dev/null 2>&1; then
-    full_name=$(echo "$user_response" | jq -r '.name // empty')
-    profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
-    avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
-  fi
-
-  # If no full name is found, use the login name
-  if [ -z "$full_name" ] || [ "$full_name" = "empty" ]; then
-    full_name="$login"
-  fi
-
-    if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
-      echo "::warning:: No valid GitHub profile for $email. Skipping..."
-      continue
-    fi
-
-  # Build contributor HTML
-  contributor_details="$contributor_details<td align='center'>
-      <a href='$profile_url'>
-        <img src='$avatar_url' alt='$full_name' width='50' height='50' style='border-radius: 50%;'><br>
-        <span>$full_name</span>
-      </a>
-    </td>"
 done
 
-  contributor_details="$contributor_details</tr></table>"
-fi
+commit_log=$(cat "$commit_log_file")
+contributors_mentions=$(paste -sd' ' "$contributors_mentions_file")
 
-# Save contributors to a file
+rm -f "$commit_log_file" "$contributors_mentions_file" "$seen_logins_file"
+
 if [ "$DRY_RUN" = "true" ]; then
-  echo "Dry-Run: Skipping writing 'contributors.txt'."
-  echo "$contributor_details" > contributors.txt
+  echo "Dry-Run: Skipping writing 'commit_log.txt' and 'contributors.txt'."
 else
-  echo "$contributor_details" > contributors.txt
+  echo "$commit_log" > commit_log.txt
+  printf '%s\n' "$contributors_mentions" > contributors.txt
 fi
