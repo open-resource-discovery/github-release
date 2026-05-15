@@ -1,12 +1,6 @@
 import * as fs from "node:fs";
 import path from "node:path";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   createTempDir,
   runSourcedShellScript,
@@ -66,7 +60,11 @@ exit 1
       "utf8",
     );
 
-    fs.writeFileSync(path.join(tempDir, "contributors.txt"), "@alice\n", "utf8");
+    fs.writeFileSync(
+      path.join(tempDir, "contributors.txt"),
+      "@alice\n",
+      "utf8",
+    );
 
     const githubEnv = path.join(tempDir, "github-env.txt");
 
@@ -130,7 +128,11 @@ exit 1
       "utf8",
     );
 
-    fs.writeFileSync(path.join(tempDir, "contributors.txt"), "@alice\n", "utf8");
+    fs.writeFileSync(
+      path.join(tempDir, "contributors.txt"),
+      "@alice\n",
+      "utf8",
+    );
 
     const githubEnv = path.join(tempDir, "github-env.txt");
 

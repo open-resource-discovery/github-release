@@ -1,12 +1,6 @@
 import * as fs from "node:fs";
 import path from "node:path";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import {
   createTempDir,
   runSourcedShellScript,
@@ -101,9 +95,9 @@ exit 0
       },
     });
 
-    expect(fs.readFileSync(path.join(tempDir, "contributors.txt"), "utf8")).toBe(
-      "@alice\n",
-    );
+    expect(
+      fs.readFileSync(path.join(tempDir, "contributors.txt"), "utf8"),
+    ).toBe("@alice\n");
 
     expect(fs.readFileSync(path.join(tempDir, "commit_log.txt"), "utf8")).toBe(
       [
@@ -180,9 +174,9 @@ exit 0
       },
     });
 
-    expect(fs.readFileSync(path.join(tempDir, "contributors.txt"), "utf8")).toBe(
-      "\n",
-    );
+    expect(
+      fs.readFileSync(path.join(tempDir, "contributors.txt"), "utf8"),
+    ).toBe("\n");
 
     expect(fs.readFileSync(path.join(tempDir, "commit_log.txt"), "utf8")).toBe(
       "* Fallback change by Bob in [1111111](https://github.com/open-resource-discovery/github-release/commit/sha-one)\n",
@@ -255,9 +249,9 @@ exit 0
       },
     });
 
-    expect(fs.readFileSync(path.join(tempDir, "contributors.txt"), "utf8")).toBe(
-      "\n",
-    );
+    expect(
+      fs.readFileSync(path.join(tempDir, "contributors.txt"), "utf8"),
+    ).toBe("\n");
 
     expect(fs.readFileSync(path.join(tempDir, "commit_log.txt"), "utf8")).toBe(
       "* Dependency update by dependabot[bot] in [3333333](https://github.com/open-resource-discovery/github-release/commit/sha-bot)\n",
