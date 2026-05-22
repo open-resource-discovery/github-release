@@ -23,7 +23,7 @@
   "dependencies": {
     "@actions/core": "3.0.1",
     "@actions/github": "9.1.1",
-    "tsx": "4.22.1"
+    "tsx": "4.22.3"
   },
   "devDependencies": {
     "@jest/globals": "30.4.1",
@@ -35,7 +35,7 @@
     "jest": "30.4.2",
     "jest-environment-node": "30.4.1",
     "prettier": "3.8.3",
-    "ts-jest": "29.4.9",
+    "ts-jest": "29.4.11",
     "typescript": "5.9.3"
   }
 }
