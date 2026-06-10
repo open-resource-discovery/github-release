@@ -92,7 +92,7 @@ exit 1
     expect(releaseBody).toContain("### Added");
     expect(releaseBody).toContain("- Existing changelog entry");
     expect(releaseBody).toContain("------");
-    expect(releaseBody).toContain("## What's Changed (commits)");
+    expect(releaseBody).toContain("## What's Changed");
     expect(releaseBody).toContain(
       "* Existing changelog entry by @alice in [1111111](https://github.com/open-resource-discovery/github-release/commit/sha-one)",
     );

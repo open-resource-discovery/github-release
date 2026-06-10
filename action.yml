@@ -38,6 +38,10 @@ inputs:
     description: "Explicit version for releasing (overwrites package.json)"
     required: false
     default: ""
+  ci-workflows:
+    description: "Comma-separated workflow file names to dispatch after creating a changelog PR, e.g. ci.yml,dummy-ci.yml"
+    required: false
+    default: ""
 
 runs:
   using: "docker"

@@ -5,6 +5,61 @@ set -e  # Stop the script if any command fails
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 TEMP_DIR=$(mktemp -d)
 
+dispatch_configured_ci_workflows() {
+  branch_ref="$1"
+
+  if [ -z "$CI_WORKFLOWS" ]; then
+    echo "No CI workflows configured for dispatch."
+    return 0
+  fi
+
+  if [ -z "$GITHUB_TOKEN" ]; then
+    echo "::error::GITHUB_TOKEN is required to dispatch CI workflows."
+    exit 1
+  fi
+
+  echo "Dispatching configured CI workflows for branch: $branch_ref"
+
+  old_ifs="$IFS"
+  IFS=","
+
+  for workflow_file in $CI_WORKFLOWS; do
+    workflow_file=$(printf '%s' "$workflow_file" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    if [ -z "$workflow_file" ]; then
+      continue
+    fi
+
+    echo "Dispatching workflow: $workflow_file"
+
+    dispatch_payload=$(jq -n --arg ref "$branch_ref" '{ref: $ref}')
+    dispatch_response_file=$(mktemp)
+
+    dispatch_http_code=$(curl -sS -o "$dispatch_response_file" -w "%{http_code}" -X POST \
+      -H "Authorization: Bearer $GITHUB_TOKEN" \
+      -H "Accept: application/vnd.github+json" \
+      -H "X-GitHub-Api-Version: 2022-11-28" \
+      -d "$dispatch_payload" \
+      "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_file/dispatches" || true)
+
+    dispatch_response=$(cat "$dispatch_response_file" || true)
+    rm -f "$dispatch_response_file"
+
+    case "$dispatch_http_code" in
+      200|201|202|204)
+        echo "Workflow dispatched successfully: $workflow_file"
+        ;;
+      *)
+        echo "::error::Failed to dispatch workflow '$workflow_file' for branch '$branch_ref' (HTTP $dispatch_http_code): $dispatch_response"
+        IFS="$old_ifs"
+        exit 1
+        ;;
+    esac
+  done
+
+  IFS="$old_ifs"
+}
+
 if [ "$CHANGELOG_UPDATED" != "true" ]; then
   echo "Changelog was not updated. Skipping branch creation and pull request."
   return 0
@@ -80,6 +135,12 @@ export PR_URL="$pr_url"
 
 cd "$GITHUB_WORKSPACE"
 rm -rf "$TEMP_DIR"
+
+if [ "$DRY_RUN" = "true" ]; then
+  echo "Dry-Run: Skipping CI workflow dispatch."
+else
+  dispatch_configured_ci_workflows "$branch_name"
+fi
 
 # Notify the user about the created PR
 echo "::notice::A pull request has been created for the changelog update."
