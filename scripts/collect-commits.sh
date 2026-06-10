@@ -136,16 +136,37 @@ printf '%s\n' "$commit_data" | while IFS="$field_sep" read -r commit_sha short_s
     login=$(printf '%s\n' "$commit_response" | jq -r '.author.login // empty')
   fi
 
-  pr_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                       -H "Accept: application/vnd.github+json" \
-                       "$BASE_API_URL/repos/$REPO/commits/$commit_sha/pulls?per_page=1")
+  pr_response_file=$(mktemp)
+  pr_http_code=$(curl -sS -o "$pr_response_file" -w "%{http_code}" \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    "$BASE_API_URL/repos/$REPO/commits/$commit_sha/pulls?per_page=1" || echo "000")
 
-  if printf '%s\n' "$pr_response" | jq empty > /dev/null 2>&1 && \
-     [ "$(printf '%s\n' "$pr_response" | jq 'length')" -gt 0 ]; then
+  pr_response=$(cat "$pr_response_file")
+  rm -f "$pr_response_file"
+
+  if [ "$pr_http_code" = "200" ] && \
+    printf '%s\n' "$pr_response" | jq -e 'type == "array" and length > 0' > /dev/null 2>&1; then
     pr_number=$(printf '%s\n' "$pr_response" | jq -r '.[0].number // empty')
     pr_title=$(printf '%s\n' "$pr_response" | jq -r '.[0].title // empty')
     pr_url=$(printf '%s\n' "$pr_response" | jq -r '.[0].html_url // empty')
     pr_user=$(printf '%s\n' "$pr_response" | jq -r '.[0].user.login // empty')
+  else
+    pr_number=$(printf '%s\n' "$subject" | sed -n 's/.*[Mm]erge pull request #\([0-9][0-9]*\).*/\1/p')
+
+    if [ -z "$pr_number" ]; then
+      pr_number=$(printf '%s\n' "$subject" | sed -n 's/.*(#\([0-9][0-9]*\)).*/\1/p')
+    fi
+
+    if [ -n "$pr_number" ]; then
+      pr_url="$BASE_URL/$REPO/pull/$pr_number"
+
+      if printf '%s\n' "$subject" | grep -qi '^Merge pull request #[0-9]'; then
+        pr_title="Pull request #$pr_number"
+      else
+        pr_title="$subject"
+      fi
+    fi
   fi
 
   if [ -z "$login" ] || [ "$login" = "empty" ]; then

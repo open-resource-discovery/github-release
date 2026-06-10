@@ -67,13 +67,18 @@ if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
    fi
 
    {
-      echo "$description"
-      echo ""
-      echo "------"
-      echo ""
-      echo "## What's Changed (commits)"
-      echo "$commit_log"
-    } > changelog_content.txt
+     echo "$description"
+     echo ""
+     echo "------"
+     echo ""
+     echo "## What's Changed"
+     echo "$commit_log"
+ 
+     if [ -n "$full_changelog" ]; then
+       echo ""
+       echo "$full_changelog"
+     fi
+   } > changelog_content.txt
 
    echo "CHANGELOG_UPDATED=false" | tee -a $GITHUB_ENV
    export CHANGELOG_UPDATED=false
