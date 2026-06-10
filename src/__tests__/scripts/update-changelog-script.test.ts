@@ -160,7 +160,8 @@ exit 1
     expect(releaseBody).toContain("### Added");
     expect(releaseBody).toContain("- New changelog entry");
     expect(releaseBody).toContain("------");
-    expect(releaseBody).toContain("## What's Changed (commits)");
+    expect(releaseBody).toMatch(/^## What's Changed$/m);
+    expect(releaseBody).not.toContain("## What's Changed (commits)");
     expect(releaseBody).toContain(
       "* New changelog entry by @alice in [1111111](https://github.com/open-resource-discovery/github-release/commit/sha-one)",
     );

@@ -41,6 +41,11 @@ fi
 
 commit_log=$(cat commit_log.txt || echo "")
 
+full_changelog=""
+if [ -f full_changelog.txt ]; then
+  full_changelog=$(cat full_changelog.txt || echo "")
+fi
+
 # Check if the version already exists in the changelog
 if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
    grep -Eq "^## \\[\\[$VERSION\\]\\(.*\\)\\]" "$CHANGELOG_FILE_PATH" || \
@@ -56,9 +61,9 @@ if grep -Eq "^## \\[\\[$VERSION\\]\\]" "$CHANGELOG_FILE_PATH" || \
       echo "::warning:: Failed to extract description with awk"
    fi
 
-   if [ -z "$description" ]; then
+   if [ -z "$(printf '%s' "$description" | tr -d '[:space:]')" ]; then
      echo "No description available for version $VERSION."
-     description="No description available for version $VERSION."
+     description="This release includes the changes below."
    fi
 
    {
@@ -79,6 +84,10 @@ fi
 echo "Version $VERSION not found in changelog.md. Updating changelog..."
 
 description=$(awk '/^## \[unreleased\]/{flag=1; next} /^## \[/{flag=0} flag' "$CHANGELOG_FILE_PATH")
+
+if [ -z "$(printf '%s' "$description" | tr -d '[:space:]')" ]; then
+  description="This release includes the changes below."
+fi
 
 header=$(awk '/^## \[unreleased\]/{exit} {print}' "$CHANGELOG_FILE_PATH")
 rest=$(awk 'BEGIN {found_unreleased=0; found_first_version=0} \
@@ -106,8 +115,13 @@ fi
   echo ""
   echo "------"
   echo ""
-  echo "## What's Changed (commits)"
+  echo "## What's Changed"
   echo "$commit_log"
+
+  if [ -n "$full_changelog" ]; then
+    echo ""
+    echo "$full_changelog"
+  fi
 } > changelog_content.txt
 
 echo "CHANGELOG_UPDATED=true" | tee -a $GITHUB_ENV

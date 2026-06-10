@@ -81,6 +81,14 @@ else
   fi
 fi
 
+# Prepare full changelog link for GitHub release notes.
+if [ -n "$prev_semver" ]; then
+  full_changelog_url="$BASE_URL/$REPO/compare/$prev_semver...$TAG"
+  printf '**Full Changelog**: [%s...%s](%s)\n' "$prev_semver" "$TAG" "$full_changelog_url" > full_changelog.txt
+else
+  : > full_changelog.txt
+fi
+
 # Check if commit range is valid
 if [ -z "$commit_range" ]; then
   echo "No commit range defined. Skipping commit collection."
@@ -104,15 +112,20 @@ if [ -z "$commit_data" ]; then
 fi
 
 # Collect commit log
-# Build GitHub-native release notes with @mentions.
+# Build GitHub-native release notes with @mentions and PR links.
 commit_log_file=$(mktemp)
 contributors_mentions_file=$(mktemp)
 seen_logins_file=$(mktemp)
+seen_prs_file=$(mktemp)
 
 printf '%s\n' "$commit_data" | while IFS="$field_sep" read -r commit_sha short_sha author_name author_email subject; do
   [ -z "$commit_sha" ] && continue
 
   login=""
+  pr_number=""
+  pr_title=""
+  pr_url=""
+  pr_user=""
   commit_url="$BASE_URL/$REPO/commit/$commit_sha"
 
   commit_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
@@ -123,13 +136,58 @@ printf '%s\n' "$commit_data" | while IFS="$field_sep" read -r commit_sha short_s
     login=$(printf '%s\n' "$commit_response" | jq -r '.author.login // empty')
   fi
 
-  if [ -n "$login" ] && [ "$login" != "empty" ] && ! printf '%s\n' "$author_email" | grep -q '\[bot\]'; then
-    printf '* %s by @%s in [%s](%s)\n' "$subject" "$login" "$short_sha" "$commit_url" >> "$commit_log_file"
+  pr_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                       -H "Accept: application/vnd.github+json" \
+                       "$BASE_API_URL/repos/$REPO/commits/$commit_sha/pulls?per_page=1")
 
+  if printf '%s\n' "$pr_response" | jq empty > /dev/null 2>&1 && \
+     [ "$(printf '%s\n' "$pr_response" | jq 'length')" -gt 0 ]; then
+    pr_number=$(printf '%s\n' "$pr_response" | jq -r '.[0].number // empty')
+    pr_title=$(printf '%s\n' "$pr_response" | jq -r '.[0].title // empty')
+    pr_url=$(printf '%s\n' "$pr_response" | jq -r '.[0].html_url // empty')
+    pr_user=$(printf '%s\n' "$pr_response" | jq -r '.[0].user.login // empty')
+  fi
+
+  if [ -z "$login" ] || [ "$login" = "empty" ]; then
+    login="$pr_user"
+  fi
+
+  is_bot=false
+  if printf '%s\n' "$author_email" | grep -q '\[bot\]' || \
+     printf '%s\n' "$login" | grep -q '\[bot\]'; then
+    is_bot=true
+  fi
+
+  if [ -n "$login" ] && [ "$login" != "empty" ] && [ "$is_bot" = "false" ]; then
     if ! grep -Fxq -- "$login" "$seen_logins_file"; then
       printf '%s\n' "$login" >> "$seen_logins_file"
       printf '@%s\n' "$login" >> "$contributors_mentions_file"
     fi
+  fi
+
+  if [ -n "$pr_number" ] && [ "$pr_number" != "empty" ] && \
+     [ -n "$pr_url" ] && [ "$pr_url" != "empty" ]; then
+    if grep -Fxq -- "$pr_number" "$seen_prs_file"; then
+      continue
+    fi
+
+    printf '%s\n' "$pr_number" >> "$seen_prs_file"
+
+    if [ -z "$pr_title" ] || [ "$pr_title" = "empty" ]; then
+      pr_title="$subject"
+    fi
+
+    if [ -n "$login" ] && [ "$login" != "empty" ] && [ "$is_bot" = "false" ]; then
+      printf '* %s by @%s in [#%s](%s)\n' "$pr_title" "$login" "$pr_number" "$pr_url" >> "$commit_log_file"
+    else
+      printf '* %s in [#%s](%s)\n' "$pr_title" "$pr_number" "$pr_url" >> "$commit_log_file"
+    fi
+
+    continue
+  fi
+
+  if [ -n "$login" ] && [ "$login" != "empty" ] && [ "$is_bot" = "false" ]; then
+    printf '* %s by @%s in [%s](%s)\n' "$subject" "$login" "$short_sha" "$commit_url" >> "$commit_log_file"
   else
     printf '* %s by %s in [%s](%s)\n' "$subject" "$author_name" "$short_sha" "$commit_url" >> "$commit_log_file"
   fi
@@ -138,7 +196,7 @@ done
 commit_log=$(cat "$commit_log_file")
 contributors_mentions=$(paste -sd' ' "$contributors_mentions_file")
 
-rm -f "$commit_log_file" "$contributors_mentions_file" "$seen_logins_file"
+rm -f "$commit_log_file" "$contributors_mentions_file" "$seen_logins_file" "$seen_prs_file"
 
 if [ "$DRY_RUN" = "true" ]; then
   echo "Dry-Run: Skipping writing 'commit_log.txt' and 'contributors.txt'."
