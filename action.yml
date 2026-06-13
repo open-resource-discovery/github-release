@@ -39,9 +39,9 @@ inputs:
     required: false
     default: ""
   ci-workflows:
-    description: "Comma-separated workflow file names to dispatch after creating a changelog PR, e.g. ci.yml,dummy-ci.yml"
+    description: "Comma-separated workflow file names to dispatch after creating a changelog PR. Use 'auto' to dispatch all pull_request + workflow_dispatch workflows except the release workflow."
     required: false
-    default: ""
+    default: "auto"
 
 runs:
   using: "docker"

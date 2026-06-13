@@ -5,30 +5,74 @@ set -e  # Stop the script if any command fails
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 TEMP_DIR=$(mktemp -d)
 
-dispatch_configured_ci_workflows() {
-  branch_ref="$1"
+get_current_release_workflow_path() {
+  printf '%s\n' "$GITHUB_WORKFLOW_REF" | sed -n 's#^[^/]*/[^/]*/\(.github/workflows/[^@]*\)@.*#\1#p'
+}
 
-  if [ -z "$CI_WORKFLOWS" ]; then
-    echo "No CI workflows configured for dispatch."
+workflow_supports_auto_dispatch() {
+  workflow_path="$1"
+
+  workflow_content=$(grep -Ev '^[[:space:]]*#' "$workflow_path" || true)
+
+  printf '%s\n' "$workflow_content" | grep -Eq 'workflow_dispatch' && \
+  printf '%s\n' "$workflow_content" | grep -Eq 'pull_request'
+}
+
+resolve_ci_workflows() {
+  if [ -z "$CI_WORKFLOWS" ] || [ "$CI_WORKFLOWS" = "auto" ]; then
+    current_release_workflow_path="$(get_current_release_workflow_path)"
+
+    for workflow_path in .github/workflows/*.yml .github/workflows/*.yaml; do
+      [ -f "$workflow_path" ] || continue
+
+      if [ -n "$current_release_workflow_path" ] && [ "$workflow_path" = "$current_release_workflow_path" ]; then
+        echo "Skipping release workflow itself: $workflow_path" >&2
+        continue
+      fi
+
+      if workflow_supports_auto_dispatch "$workflow_path"; then
+        basename "$workflow_path"
+      fi
+    done | sort -u
+
     return 0
   fi
+
+  if [ "$CI_WORKFLOWS" = "none" ] || [ "$CI_WORKFLOWS" = "false" ]; then
+    return 0
+  fi
+
+  printf '%s' "$CI_WORKFLOWS" \
+    | tr ',' '\n' \
+    | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+    | sed '/^$/d' \
+    | while IFS= read -r workflow_file; do
+        basename "$workflow_file"
+      done \
+    | sort -u
+}
+
+dispatch_configured_ci_workflows() {
+  branch_ref="$1"
 
   if [ -z "$GITHUB_TOKEN" ]; then
     echo "::error::GITHUB_TOKEN is required to dispatch CI workflows."
     exit 1
   fi
 
-  echo "Dispatching configured CI workflows for branch: $branch_ref"
+  workflows_file=$(mktemp)
+  resolve_ci_workflows > "$workflows_file"
 
-  old_ifs="$IFS"
-  IFS=","
+  if [ ! -s "$workflows_file" ]; then
+    echo "No CI workflows configured or discovered for dispatch."
+    rm -f "$workflows_file"
+    return 0
+  fi
 
-  for workflow_file in $CI_WORKFLOWS; do
-    workflow_file=$(printf '%s' "$workflow_file" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  echo "Dispatching CI workflows for branch: $branch_ref"
 
-    if [ -z "$workflow_file" ]; then
-      continue
-    fi
+  while IFS= read -r workflow_file; do
+    [ -z "$workflow_file" ] && continue
 
     echo "Dispatching workflow: $workflow_file"
 
@@ -40,7 +84,7 @@ dispatch_configured_ci_workflows() {
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
       -d "$dispatch_payload" \
-      "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_file/dispatches" || true)
+      "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_file/dispatches" || printf "000")
 
     dispatch_response=$(cat "$dispatch_response_file" || true)
     rm -f "$dispatch_response_file"
@@ -51,13 +95,13 @@ dispatch_configured_ci_workflows() {
         ;;
       *)
         echo "::error::Failed to dispatch workflow '$workflow_file' for branch '$branch_ref' (HTTP $dispatch_http_code): $dispatch_response"
-        IFS="$old_ifs"
+        rm -f "$workflows_file"
         exit 1
         ;;
     esac
-  done
+  done < "$workflows_file"
 
-  IFS="$old_ifs"
+  rm -f "$workflows_file"
 }
 
 if [ "$CHANGELOG_UPDATED" != "true" ]; then
@@ -133,14 +177,14 @@ fi
 echo "PR_URL=$pr_url" | tee -a $GITHUB_ENV
 export PR_URL="$pr_url"
 
-cd "$GITHUB_WORKSPACE"
-rm -rf "$TEMP_DIR"
-
 if [ "$DRY_RUN" = "true" ]; then
   echo "Dry-Run: Skipping CI workflow dispatch."
 else
   dispatch_configured_ci_workflows "$branch_name"
 fi
+
+cd "$GITHUB_WORKSPACE"
+rm -rf "$TEMP_DIR"
 
 # Notify the user about the created PR
 echo "::notice::A pull request has been created for the changelog update."
