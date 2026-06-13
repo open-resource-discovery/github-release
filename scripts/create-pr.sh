@@ -14,8 +14,8 @@ workflow_supports_auto_dispatch() {
 
   workflow_content=$(grep -Ev '^[[:space:]]*#' "$workflow_path" || true)
 
-  printf '%s\n' "$workflow_content" | grep -Eq 'workflow_dispatch' && \
-  printf '%s\n' "$workflow_content" | grep -Eq 'pull_request'
+  printf '%s\n' "$workflow_content" | grep -Eq '(^|[^_[:alnum:]-])workflow_dispatch([^_[:alnum:]-]|$)' && \
+  printf '%s\n' "$workflow_content" | grep -Eq '(^|[^_[:alnum:]-])pull_request([^_[:alnum:]-]|$)'
 }
 
 resolve_ci_workflows() {
@@ -79,12 +79,14 @@ dispatch_configured_ci_workflows() {
     dispatch_payload=$(jq -n --arg ref "$branch_ref" '{ref: $ref}')
     dispatch_response_file=$(mktemp)
 
-    dispatch_http_code=$(curl -sS -o "$dispatch_response_file" -w "%{http_code}" -X POST \
+    if ! dispatch_http_code=$(curl -sS -o "$dispatch_response_file" -w "%{http_code}" -X POST \
       -H "Authorization: Bearer $GITHUB_TOKEN" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
       -d "$dispatch_payload" \
-      "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_file/dispatches" || printf "000")
+      "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_file/dispatches"); then
+      dispatch_http_code="000"
+    fi
 
     dispatch_response=$(cat "$dispatch_response_file" || true)
     rm -f "$dispatch_response_file"
