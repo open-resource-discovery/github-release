@@ -9,61 +9,64 @@ urlencode() {
   jq -nr --arg value "$1" '$value|@uri'
 }
 
-map_workflow_conclusion_to_status_state() {
+map_job_conclusion_to_check_conclusion() {
   conclusion="$1"
 
   case "$conclusion" in
-    success|skipped|neutral)
-      echo "success"
-      ;;
-    failure|cancelled|timed_out|action_required)
-      echo "failure"
+    success|failure|neutral|cancelled|skipped|timed_out|action_required)
+      echo "$conclusion"
       ;;
     *)
-      echo "error"
+      echo "failure"
       ;;
   esac
 }
 
-create_commit_status() {
+create_check_run() {
   sha="$1"
-  context="$2"
-  state="$3"
-  target_url="$4"
-  description="$5"
+  check_name="$2"
+  conclusion="$3"
+  details_url="$4"
+  summary="$5"
 
-  status_payload=$(jq -n \
-    --arg state "$state" \
-    --arg context "$context" \
-    --arg target_url "$target_url" \
-    --arg description "$description" \
+  check_payload=$(jq -n \
+    --arg name "$check_name" \
+    --arg head_sha "$sha" \
+    --arg conclusion "$conclusion" \
+    --arg details_url "$details_url" \
+    --arg summary "$summary" \
     '{
-      state: $state,
-      context: $context,
-      target_url: $target_url,
-      description: $description
-    }')
+      name: $name,
+      head_sha: $head_sha,
+      status: "completed",
+      conclusion: $conclusion,
+      output: {
+        title: $name,
+        summary: $summary
+      }
+    }
+    | if $details_url == "" then . else . + {details_url: $details_url} end')
 
-  status_response_file=$(mktemp)
+  check_response_file=$(mktemp)
 
-  if ! status_http_code=$(curl -sS -o "$status_response_file" -w "%{http_code}" -X POST \
+  if ! check_http_code=$(curl -sS -o "$check_response_file" -w "%{http_code}" -X POST \
     -H "Authorization: Bearer $GITHUB_TOKEN" \
     -H "Accept: application/vnd.github+json" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
-    -d "$status_payload" \
-    "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/statuses/$sha"); then
-    status_http_code="000"
+    -d "$check_payload" \
+    "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/check-runs"); then
+    check_http_code="000"
   fi
 
-  status_response=$(cat "$status_response_file" || true)
-  rm -f "$status_response_file"
+  check_response=$(cat "$check_response_file" || true)
+  rm -f "$check_response_file"
 
-  if [ "$status_http_code" != "201" ]; then
-    echo "::error::Failed to create commit status '$context' for $sha (HTTP $status_http_code): $status_response"
+  if [ "$check_http_code" != "201" ]; then
+    echo "::error::Failed to create check run '$check_name' for $sha (HTTP $check_http_code): $check_response"
     exit 1
   fi
 
-  echo "Created commit status '$context' with state '$state' for $sha."
+  echo "Created check run '$check_name' with conclusion '$conclusion' for $sha."
 }
 
 find_dispatched_workflow_run_id() {
@@ -81,7 +84,7 @@ find_dispatched_workflow_run_id() {
       -H "Authorization: Bearer $GITHUB_TOKEN" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_file/runs?branch=$encoded_branch_ref&event=workflow_dispatch&per_page=10"); then
+      "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_file/runs?branch=$encoded_branch_ref&event=workflow_dispatch&per_page=20"); then
       runs_http_code="000"
     fi
 
@@ -90,7 +93,7 @@ find_dispatched_workflow_run_id() {
 
     if [ "$runs_http_code" = "200" ] && printf '%s\n' "$runs_response" | jq empty > /dev/null 2>&1; then
       run_id=$(printf '%s\n' "$runs_response" | jq -r --arg head_sha "$head_sha" '
-        .workflow_runs[]
+        .workflow_runs[]?
         | select(.head_sha == $head_sha)
         | .id
       ' | head -n 1)
@@ -110,7 +113,6 @@ find_dispatched_workflow_run_id() {
 
 wait_for_workflow_run_completion() {
   run_id="$1"
-
   attempt=0
 
   while [ "$attempt" -lt 120 ]; do
@@ -146,7 +148,7 @@ wait_for_workflow_run_completion() {
   exit 1
 }
 
-mirror_workflow_jobs_as_commit_statuses() {
+mirror_workflow_jobs_as_check_runs() {
   run_id="$1"
   head_sha="$2"
 
@@ -169,10 +171,11 @@ mirror_workflow_jobs_as_commit_statuses() {
   fi
 
   if ! printf '%s\n' "$jobs_response" | jq -e '.jobs | length > 0' > /dev/null 2>&1; then
-    echo "::error::Workflow run $run_id has no jobs. Cannot mirror required status checks."
+    echo "::error::Workflow run $run_id has no jobs. Cannot mirror required checks."
     exit 1
   fi
 
+  jobs_file=$(mktemp)
   tab=$(printf '\t')
 
   printf '%s\n' "$jobs_response" | jq -r '
@@ -183,23 +186,32 @@ mirror_workflow_jobs_as_commit_statuses() {
         (.html_url // "")
       ]
     | @tsv
-  ' | while IFS="$tab" read -r job_name job_conclusion job_url; do
+  ' > "$jobs_file"
+
+  while IFS="$tab" read -r job_name job_conclusion job_url; do
     [ -z "$job_name" ] && continue
 
-    status_state=$(map_workflow_conclusion_to_status_state "$job_conclusion")
+    check_conclusion=$(map_job_conclusion_to_check_conclusion "$job_conclusion")
 
-    create_commit_status \
+    create_check_run \
       "$head_sha" \
       "$job_name" \
-      "$status_state" \
+      "$check_conclusion" \
       "$job_url" \
-      "Mirrored result from dispatched workflow run $run_id"
+      "Mirrored result from dispatched workflow run $run_id."
 
-    if [ "$status_state" != "success" ]; then
-      echo "::error::Dispatched CI job '$job_name' finished with conclusion '$job_conclusion'."
-      exit 1
-    fi
-  done
+    case "$check_conclusion" in
+      success|neutral|skipped)
+        ;;
+      *)
+        rm -f "$jobs_file"
+        echo "::error::Dispatched CI job '$job_name' finished with conclusion '$job_conclusion'."
+        exit 1
+        ;;
+    esac
+  done < "$jobs_file"
+
+  rm -f "$jobs_file"
 }
 
 get_current_release_workflow_path() {
@@ -259,7 +271,7 @@ dispatch_configured_ci_workflows() {
   fi
 
   if [ -z "$head_sha" ]; then
-    echo "::error::PR head SHA is required to mirror CI statuses."
+    echo "::error::PR head SHA is required to mirror CI checks."
     exit 1
   fi
 
@@ -273,7 +285,7 @@ dispatch_configured_ci_workflows() {
   fi
 
   echo "Dispatching CI workflows for branch: $branch_ref"
-  echo "Mirroring CI job results to PR head SHA: $head_sha"
+  echo "Mirroring dispatched CI jobs as check runs for PR head SHA: $head_sha"
 
   while IFS= read -r workflow_file; do
     [ -z "$workflow_file" ] && continue
@@ -315,7 +327,7 @@ dispatch_configured_ci_workflows() {
     echo "Found dispatched workflow run: $run_id"
 
     wait_for_workflow_run_completion "$run_id"
-    mirror_workflow_jobs_as_commit_statuses "$run_id" "$head_sha"
+    mirror_workflow_jobs_as_check_runs "$run_id" "$head_sha"
   done < "$workflows_file"
 
   rm -f "$workflows_file"
@@ -356,6 +368,7 @@ fi
 branch_head_sha=$(git rev-parse HEAD)
 echo "CHANGELOG_PR_HEAD_SHA=$branch_head_sha" | tee -a "$GITHUB_ENV"
 export CHANGELOG_PR_HEAD_SHA="$branch_head_sha"
+echo "Changelog PR head SHA: $CHANGELOG_PR_HEAD_SHA"
 
 if [ "$DRY_RUN" = "true" ]; then
   echo "Dry-Run: Skipping 'git push origin $branch_name'."
