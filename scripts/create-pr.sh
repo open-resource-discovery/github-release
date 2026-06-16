@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e  # Stop the script if any command fails
 
+CREATE_PR_SCRIPT_VERSION="ci-dispatch-check-run-v2"
+echo "CREATE_PR_SCRIPT_VERSION=$CREATE_PR_SCRIPT_VERSION"
+
 # Define variables
 CHANGELOG_FILE_PATH="${CHANGELOG_FILE_PATH:-CHANGELOG.md}"
 TEMP_DIR=$(mktemp -d)
@@ -73,9 +76,15 @@ find_dispatched_workflow_run_id() {
   workflow_file="$1"
   branch_ref="$2"
   head_sha="$3"
+  dispatch_started_at="$4"
+
+  # All diagnostic output goes to stderr so it appears in logs but is not
+  # captured into the $() that reads this function's return value.
+  echo "Resolving workflow run for dispatched workflow: $workflow_file" >&2
 
   encoded_branch_ref=$(urlencode "$branch_ref")
   attempt=0
+  runs_response=""
 
   while [ "$attempt" -lt 60 ]; do
     runs_response_file=$(mktemp)
@@ -98,6 +107,14 @@ find_dispatched_workflow_run_id() {
         | .id
       ' | head -n 1)
 
+      if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
+        run_id=$(printf '%s\n' "$runs_response" | jq -r \
+          --arg branch "$branch_ref" \
+          --arg since "$dispatch_started_at" \
+          '.workflow_runs[]? | select(.head_branch == $branch and .created_at >= $since) | .id' \
+          | head -n 1)
+      fi
+
       if [ -n "$run_id" ] && [ "$run_id" != "null" ]; then
         echo "$run_id"
         return 0
@@ -108,6 +125,10 @@ find_dispatched_workflow_run_id() {
     sleep 5
   done
 
+  echo "::error::Could not find dispatched workflow run for '$workflow_file' on branch '$branch_ref' (SHA '$head_sha', since '$dispatch_started_at')." >&2
+  echo "Available workflow runs (last page):" >&2
+  printf '%s\n' "$runs_response" | jq -r '.workflow_runs[]? |
+    "  id=\(.id) branch=\(.head_branch) sha=\(.head_sha) status=\(.status) conclusion=\(.conclusion // "null") created=\(.created_at) url=\(.html_url)"' >&2 || true
   return 1
 }
 
@@ -223,8 +244,7 @@ workflow_supports_auto_dispatch() {
 
   workflow_content=$(grep -Ev '^[[:space:]]*#' "$workflow_path" || true)
 
-  printf '%s\n' "$workflow_content" | grep -Eq '(^|[^_[:alnum:]-])workflow_dispatch([^_[:alnum:]-]|$)' && \
-  printf '%s\n' "$workflow_content" | grep -Eq '(^|[^_[:alnum:]-])pull_request([^_[:alnum:]-]|$)'
+  printf '%s\n' "$workflow_content" | grep -Eq '(^|[^_[:alnum:]-])workflow_dispatch([^_[:alnum:]-]|$)'
 }
 
 resolve_ci_workflows() {
@@ -292,6 +312,8 @@ dispatch_configured_ci_workflows() {
 
     echo "Dispatching workflow: $workflow_file"
 
+    dispatch_started_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
     dispatch_payload=$(jq -n --arg ref "$branch_ref" '{ref: $ref}')
     dispatch_response_file=$(mktemp)
 
@@ -318,8 +340,7 @@ dispatch_configured_ci_workflows() {
         ;;
     esac
 
-    run_id=$(find_dispatched_workflow_run_id "$workflow_file" "$branch_ref" "$head_sha") || {
-      echo "::error::Could not find dispatched workflow run for '$workflow_file' on branch '$branch_ref' and SHA '$head_sha'."
+    run_id=$(find_dispatched_workflow_run_id "$workflow_file" "$branch_ref" "$head_sha" "$dispatch_started_at") || {
       rm -f "$workflows_file"
       exit 1
     }
@@ -410,6 +431,17 @@ fi
 
 echo "PR_URL=$pr_url" | tee -a $GITHUB_ENV
 export PR_URL="$pr_url"
+
+echo "--- CI dispatch debug ---"
+echo "  pwd: $(pwd)"
+echo "  branch_name: $branch_name"
+echo "  CHANGELOG_PR_HEAD_SHA: $CHANGELOG_PR_HEAD_SHA"
+echo "  CI_WORKFLOWS: $CI_WORKFLOWS"
+echo "  .github/workflows files:"
+for _dbg_wf in .github/workflows/*.yml .github/workflows/*.yaml; do
+  [ -f "$_dbg_wf" ] && echo "    $_dbg_wf"
+done
+echo "--- end debug ---"
 
 if [ "$DRY_RUN" = "true" ]; then
   echo "Dry-Run: Skipping CI workflow dispatch."

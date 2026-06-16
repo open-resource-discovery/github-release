@@ -39,7 +39,13 @@ inputs:
     required: false
     default: ""
   ci-workflows:
-    description: "Comma-separated workflow file names to dispatch after creating a changelog PR. Use 'auto' to dispatch all pull_request + workflow_dispatch workflows except the release workflow."
+    description: >
+      Comma-separated workflow file names to dispatch after creating a changelog PR.
+      Use 'auto' (default) to dispatch all workflow_dispatch-enabled workflows except the release workflow itself.
+      Use 'none' or 'false' to disable dispatch entirely.
+      Dispatched CI job results are mirrored as GitHub Check Runs on the changelog PR head SHA,
+      so required checks are satisfied automatically.
+      Requires: permissions: actions: write, checks: write (plus contents: write, pull-requests: write).
     required: false
     default: "auto"
 
