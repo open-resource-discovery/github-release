@@ -82,7 +82,10 @@ find_dispatched_workflow_run_id() {
   # captured into the $() that reads this function's return value.
   echo "Resolving workflow run for dispatched workflow: $workflow_file" >&2
 
-  encoded_branch_ref=$(urlencode "$branch_ref")
+  # Pass the branch name as-is in the query string.  GitHub's ?branch= filter
+  # expects the literal branch name; percent-encoding (e.g. %2F for /) is NOT
+  # decoded on GitHub's query router and would return zero runs for branches
+  # whose names contain a slash (e.g. release-changelog-update/1.0.0).
   attempt=0
   runs_response=""
 
@@ -93,7 +96,7 @@ find_dispatched_workflow_run_id() {
       -H "Authorization: Bearer $GITHUB_TOKEN" \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
-      "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_file/runs?branch=$encoded_branch_ref&event=workflow_dispatch&per_page=20"); then
+      "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/workflows/$workflow_file/runs?branch=$branch_ref&event=workflow_dispatch&per_page=20"); then
       runs_http_code="000"
     fi
 
@@ -387,9 +390,7 @@ else
 fi
 
 branch_head_sha=$(git rev-parse HEAD)
-echo "CHANGELOG_PR_HEAD_SHA=$branch_head_sha" | tee -a "$GITHUB_ENV"
-export CHANGELOG_PR_HEAD_SHA="$branch_head_sha"
-echo "Changelog PR head SHA: $CHANGELOG_PR_HEAD_SHA"
+echo "Local branch HEAD SHA (before push): $branch_head_sha"
 
 if [ "$DRY_RUN" = "true" ]; then
   echo "Dry-Run: Skipping 'git push origin $branch_name'."
@@ -405,6 +406,7 @@ if [ "$DRY_RUN" = "true" ]; then
   echo "Dry-Run: Skipping PR creation."
   echo "Would have sent API request with title: '$pr_title' and branch '$branch_name'."
   pr_url="https://github.com/$GITHUB_REPOSITORY/pull/dry-run-placeholder"
+  CHANGELOG_PR_HEAD_SHA="$branch_head_sha"
 else
   response_file=$(mktemp)
   http_code=$(curl -sS -o "$response_file" -w "%{http_code}" -X POST \
@@ -416,18 +418,44 @@ else
   response=$(cat "$response_file")
   rm -f "$response_file"
 
-  if [ "$http_code" != "201" ]; then
+  if [ "$http_code" = "422" ]; then
+    # PR already exists for this branch — look it up to get its current head SHA.
+    owner=$(printf '%s' "$GITHUB_REPOSITORY" | cut -d/ -f1)
+    existing_file=$(mktemp)
+    curl -sS -o "$existing_file" \
+      -H "Authorization: Bearer $GITHUB_TOKEN" \
+      -H "Accept: application/vnd.github+json" \
+      -H "X-GitHub-Api-Version: 2022-11-28" \
+      "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/pulls?head=$owner:$branch_name&state=open&per_page=1"
+    existing_response=$(cat "$existing_file")
+    rm -f "$existing_file"
+    pr_url=$(printf '%s\n' "$existing_response" | jq -r '.[0].html_url // empty')
+    CHANGELOG_PR_HEAD_SHA=$(printf '%s\n' "$existing_response" | jq -r '.[0].head.sha // empty')
+    echo "PR already exists: $pr_url (head SHA: $CHANGELOG_PR_HEAD_SHA)"
+  elif [ "$http_code" != "201" ]; then
     echo "::error:: PR creation failed (HTTP $http_code): $response"
     exit 1
+  else
+    pr_url=$(echo "$response" | jq -r '.html_url // empty')
+    # Use the SHA GitHub returned in the PR response — this is authoritative and
+    # guaranteed to match what GitHub links to the PR's required checks.
+    CHANGELOG_PR_HEAD_SHA=$(echo "$response" | jq -r '.head.sha // empty')
   fi
-
-  pr_url=$(echo "$response" | jq -r '.html_url // empty')
 
   if [ -z "$pr_url" ] || [ "$pr_url" = "null" ]; then
-    echo "::error:: PR was created but html_url is missing: $response"
+    echo "::error:: PR URL could not be determined: $response"
     exit 1
   fi
+
+  if [ -z "$CHANGELOG_PR_HEAD_SHA" ] || [ "$CHANGELOG_PR_HEAD_SHA" = "null" ]; then
+    echo "PR head SHA not returned by API — falling back to local git SHA"
+    CHANGELOG_PR_HEAD_SHA="$branch_head_sha"
+  fi
 fi
+
+echo "CHANGELOG_PR_HEAD_SHA=$CHANGELOG_PR_HEAD_SHA" | tee -a "$GITHUB_ENV"
+export CHANGELOG_PR_HEAD_SHA
+echo "Changelog PR head SHA: $CHANGELOG_PR_HEAD_SHA"
 
 echo "PR_URL=$pr_url" | tee -a $GITHUB_ENV
 export PR_URL="$pr_url"
