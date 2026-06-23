@@ -30,6 +30,14 @@ echo "RELEASE_TITLE_PREFIX=$(printenv INPUT_RELEASE-TITLE-PREFIX)" | tee -a "$GI
 export VERSION_OVERRIDE="$(printenv INPUT_VERSION)"
 echo "VERSION_OVERRIDE=$VERSION_OVERRIDE" | tee -a "$GITHUB_ENV"
 
+export CI_WORKFLOWS="$(printenv INPUT_CI-WORKFLOWS)"
+
+if [ -z "$CI_WORKFLOWS" ]; then
+  CI_WORKFLOWS="auto"
+fi
+
+echo "CI_WORKFLOWS=$CI_WORKFLOWS" | tee -a "$GITHUB_ENV"
+
 # Import scripts instead of executing them with sh
 . /app/scripts/setup-release.sh
 . /app/scripts/collect-commits.sh
