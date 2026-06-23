@@ -81,6 +81,14 @@ else
   fi
 fi
 
+# Prepare full changelog link for GitHub release notes.
+if [ -n "$prev_semver" ]; then
+  full_changelog_url="$BASE_URL/$REPO/compare/$prev_semver...$TAG"
+  printf '**Full Changelog**: [%s...%s](%s)\n' "$prev_semver" "$TAG" "$full_changelog_url" > full_changelog.txt
+else
+  : > full_changelog.txt
+fi
+
 # Check if commit range is valid
 if [ -z "$commit_range" ]; then
   echo "No commit range defined. Skipping commit collection."
@@ -88,7 +96,8 @@ if [ -z "$commit_range" ]; then
 fi
 
 # Collect commit log and contributors
-commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%H|%an|%ae") || { echo "::error:: commit data failed"; return 0; }
+field_sep=$(printf '\037')
+commit_data=$(git log "$commit_range" --max-count=30 --pretty=format:"%H${field_sep}%h${field_sep}%an${field_sep}%ae${field_sep}%s") || { echo "::error:: commit data failed"; return 0; }
 if [ -z "$commit_data" ]; then
   echo "No commits found in the specified range."   
   commit_log="* No changes since last release."
@@ -97,118 +106,122 @@ if [ -z "$commit_data" ]; then
     echo "Dry-Run: Skipping writing 'commit_log.txt' and 'contributors.txt'."
   else
     echo "$commit_log" > commit_log.txt
-    echo "<table><tr><td>No contributors found</td></tr></table>" > contributors.txt
+    : > contributors.txt
   fi
   return 0
 fi
 
 # Collect commit log
-commit_log=$(git log "$commit_range" --max-count=30 --pretty=format:"* [%h]($BASE_URL/$REPO/commit/%H) %s (%an)")
-log_status=$?
+# Build GitHub-native release notes with @mentions and PR links.
+commit_log_file=$(mktemp)
+contributors_mentions_file=$(mktemp)
+seen_logins_file=$(mktemp)
+seen_prs_file=$(mktemp)
 
-if [ $log_status -ne 0 ]; then
-  echo "::error:: git log failed with exit code $log_status"
-  echo "::error:: commit_range was '$commit_range'"
-  return 0
-fi
+printf '%s\n' "$commit_data" | while IFS="$field_sep" read -r commit_sha short_sha author_name author_email subject; do
+  [ -z "$commit_sha" ] && continue
 
-# Extract unique contributor emails and commit hashes
-commit_emails=$(echo "$commit_data" | awk -F"|" '{print $3}' | sort | uniq)
+  login=""
+  pr_number=""
+  pr_title=""
+  pr_url=""
+  pr_user=""
+  commit_url="$BASE_URL/$REPO/commit/$commit_sha"
 
-# Save commit log to a file
-if [ "$DRY_RUN" = "true" ]; then
-  echo "Dry-Run: Skipping writing 'commit_log.txt'."
-else
-  echo "$commit_log" > commit_log.txt
-fi
+  commit_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+                          -H "Accept: application/vnd.github+json" \
+                          "$BASE_API_URL/repos/$REPO/commits/$commit_sha")
 
-# Skip contributor collection in dry-run mode
-if [ "$DRY_RUN" = "true" ]; then
-  echo "Dry-Run: Skipping contributor collection."
-  contributor_details="<table><tr><td>Dry-Run: Contributor collection skipped</td></tr></table>"
-else
+  if printf '%s\n' "$commit_response" | jq empty > /dev/null 2>&1; then
+    login=$(printf '%s\n' "$commit_response" | jq -r '.author.login // empty')
+  fi
 
-  # Prepare contributors list with profile pictures
-  contributor_details="<table><tr>"
-  seen_logins=""
-  for email in $commit_emails; do
-    login=""
-    full_name=""
-    profile_url=""
-    avatar_url=""
+  pr_response_file=$(mktemp)
+  pr_http_code=$(curl -sS -o "$pr_response_file" -w "%{http_code}" \
+    -H "Authorization: Bearer $GITHUB_TOKEN" \
+    -H "Accept: application/vnd.github+json" \
+    "$BASE_API_URL/repos/$REPO/commits/$commit_sha/pulls?per_page=1" || echo "000")
 
-    if echo "$email" | grep -q '\[bot\]'; then
-      echo "Skipping bot user: $email"
+  pr_response=$(cat "$pr_response_file")
+  rm -f "$pr_response_file"
+
+  if [ "$pr_http_code" = "200" ] && \
+    printf '%s\n' "$pr_response" | jq -e 'type == "array" and length > 0' > /dev/null 2>&1; then
+    pr_number=$(printf '%s\n' "$pr_response" | jq -r '.[0].number // empty')
+    pr_title=$(printf '%s\n' "$pr_response" | jq -r '.[0].title // empty')
+    pr_url=$(printf '%s\n' "$pr_response" | jq -r '.[0].html_url // empty')
+    pr_user=$(printf '%s\n' "$pr_response" | jq -r '.[0].user.login // empty')
+  else
+    pr_number=$(printf '%s\n' "$subject" | sed -n 's/.*[Mm]erge pull request #\([0-9][0-9]*\).*/\1/p')
+
+    if [ -z "$pr_number" ]; then
+      pr_number=$(printf '%s\n' "$subject" | sed -n 's/.*(#\([0-9][0-9]*\)).*/\1/p')
+    fi
+
+    if [ -n "$pr_number" ]; then
+      pr_url="$BASE_URL/$REPO/pull/$pr_number"
+
+      if printf '%s\n' "$subject" | grep -qi '^Merge pull request #[0-9]'; then
+        pr_title="Pull request #$pr_number"
+      else
+        pr_title="$subject"
+      fi
+    fi
+  fi
+
+  if [ -z "$login" ] || [ "$login" = "empty" ]; then
+    login="$pr_user"
+  fi
+
+  is_bot=false
+  if printf '%s\n' "$author_email" | grep -q '\[bot\]' || \
+     printf '%s\n' "$login" | grep -q '\[bot\]'; then
+    is_bot=true
+  fi
+
+  if [ -n "$login" ] && [ "$login" != "empty" ] && [ "$is_bot" = "false" ]; then
+    if ! grep -Fxq -- "$login" "$seen_logins_file"; then
+      printf '%s\n' "$login" >> "$seen_logins_file"
+      printf '@%s\n' "$login" >> "$contributors_mentions_file"
+    fi
+  fi
+
+  if [ -n "$pr_number" ] && [ "$pr_number" != "empty" ] && \
+     [ -n "$pr_url" ] && [ "$pr_url" != "empty" ]; then
+    if grep -Fxq -- "$pr_number" "$seen_prs_file"; then
       continue
     fi
 
-  commit_sha=$(echo "$commit_data" | awk -F"|" -v email="$email" '$3 == email { print $1; exit }')
+    printf '%s\n' "$pr_number" >> "$seen_prs_file"
 
-  if [ -n "$commit_sha" ]; then
-
-    commit_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                            -H "Accept: application/vnd.github+json" \
-                            "$BASE_API_URL/repos/$REPO/commits/$commit_sha")
-
-    if echo "$commit_response" | jq empty > /dev/null 2>&1; then
-      login=$(echo "$commit_response" | jq -r '.author.login // empty')
+    if [ -z "$pr_title" ] || [ "$pr_title" = "empty" ]; then
+      pr_title="$subject"
     fi
-  else
-    echo "::warning:: No commit SHA found for email $email. Skipping commit lookup."
-  fi
 
-  # Step 3: Final check
-  if [ -z "$login" ] || [ "$login" = "empty" ]; then
-    echo "::warning:: No valid GitHub user found for email $email or commit lookup. Skipping..."
+    if [ -n "$login" ] && [ "$login" != "empty" ] && [ "$is_bot" = "false" ]; then
+      printf '* %s by @%s in [#%s](%s)\n' "$pr_title" "$login" "$pr_number" "$pr_url" >> "$commit_log_file"
+    else
+      printf '* %s in [#%s](%s)\n' "$pr_title" "$pr_number" "$pr_url" >> "$commit_log_file"
+    fi
+
     continue
   fi
 
-  case " $seen_logins " in
-    *" $login "*)
-      echo "Skipping duplicate contributor login: $login"
-      continue
-      ;;
-  esac
-  seen_logins="$seen_logins $login"
-
-  # Fetch GitHub user details
-  user_response=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
-                         -H "Accept: application/vnd.github+json" \
-                         "$BASE_API_URL/users/$login")
-
-
-  if echo "$user_response" | jq empty > /dev/null 2>&1; then
-    full_name=$(echo "$user_response" | jq -r '.name // empty')
-    profile_url=$(echo "$user_response" | jq -r '.html_url // empty')
-    avatar_url=$(echo "$user_response" | jq -r '.avatar_url // empty')
+  if [ -n "$login" ] && [ "$login" != "empty" ] && [ "$is_bot" = "false" ]; then
+    printf '* %s by @%s in [%s](%s)\n' "$subject" "$login" "$short_sha" "$commit_url" >> "$commit_log_file"
+  else
+    printf '* %s by %s in [%s](%s)\n' "$subject" "$author_name" "$short_sha" "$commit_url" >> "$commit_log_file"
   fi
-
-  # If no full name is found, use the login name
-  if [ -z "$full_name" ] || [ "$full_name" = "empty" ]; then
-    full_name="$login"
-  fi
-
-    if [ -z "$profile_url" ] || [ -z "$avatar_url" ] || [ "$profile_url" = "empty" ] || [ "$avatar_url" = "empty" ]; then
-      echo "::warning:: No valid GitHub profile for $email. Skipping..."
-      continue
-    fi
-
-  # Build contributor HTML
-  contributor_details="$contributor_details<td align='center'>
-      <a href='$profile_url'>
-        <img src='$avatar_url' alt='$full_name' width='50' height='50' style='border-radius: 50%;'><br>
-        <span>$full_name</span>
-      </a>
-    </td>"
 done
 
-  contributor_details="$contributor_details</tr></table>"
-fi
+commit_log=$(cat "$commit_log_file")
+contributors_mentions=$(paste -sd' ' "$contributors_mentions_file")
 
-# Save contributors to a file
+rm -f "$commit_log_file" "$contributors_mentions_file" "$seen_logins_file" "$seen_prs_file"
+
 if [ "$DRY_RUN" = "true" ]; then
-  echo "Dry-Run: Skipping writing 'contributors.txt'."
-  echo "$contributor_details" > contributors.txt
+  echo "Dry-Run: Skipping writing 'commit_log.txt' and 'contributors.txt'."
 else
-  echo "$contributor_details" > contributors.txt
+  echo "$commit_log" > commit_log.txt
+  printf '%s\n' "$contributors_mentions" > contributors.txt
 fi
