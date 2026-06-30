@@ -5,6 +5,7 @@ import type { GitOptions, GitPort } from "../git/git.js";
 import {
   GitHubApiError,
   type CheckRunConclusion,
+  type CommitStatusState,
   type GitHubClient,
 } from "../github/client.js";
 import {
@@ -46,6 +47,16 @@ function mapJobConclusionToCheckConclusion(
   }
 
   return "failure";
+}
+
+function mapCheckConclusionToCommitStatusState(
+  checkConclusion: CheckRunConclusion,
+): CommitStatusState {
+  return checkConclusion === "success" ||
+    checkConclusion === "neutral" ||
+    checkConclusion === "skipped"
+    ? "success"
+    : "failure";
 }
 
 function getCurrentReleaseWorkflowPath(
@@ -211,6 +222,20 @@ async function mirrorWorkflowJobsAsCheckRuns(
 
     info(
       `Created check run '${job.name}' with conclusion '${checkConclusion}' for ${headSha}.`,
+    );
+
+    const statusState = mapCheckConclusionToCommitStatusState(checkConclusion);
+
+    await client.createCommitStatus(owner, repo, {
+      sha: headSha,
+      state: statusState,
+      context: job.name,
+      description: `Mirrored result from dispatched workflow run ${runId}.`,
+      targetUrl: job.html_url ?? undefined,
+    });
+
+    info(
+      `Created commit status '${job.name}' with state '${statusState}' for ${headSha}.`,
     );
 
     if (

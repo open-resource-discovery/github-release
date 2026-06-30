@@ -69,6 +69,16 @@ export type CreateCheckRunInput = {
   summary: string;
 };
 
+export type CommitStatusState = "error" | "failure" | "pending" | "success";
+
+export type CreateCommitStatusInput = {
+  sha: string;
+  state: CommitStatusState;
+  context: string;
+  description: string;
+  targetUrl?: string;
+};
+
 export class GitHubApiError extends Error {
   public readonly status?: number;
 
@@ -129,6 +139,11 @@ export interface GitHubClient {
     owner: string,
     repo: string,
     input: CreateCheckRunInput,
+  ): Promise<void>;
+  createCommitStatus(
+    owner: string,
+    repo: string,
+    input: CreateCommitStatusInput,
   ): Promise<void>;
 }
 
@@ -339,6 +354,18 @@ export function createGitHubClient(config: GitHubClientConfig): GitHubClient {
           title: input.name,
           summary: input.summary,
         },
+      });
+    },
+
+    async createCommitStatus(owner, repo, input): Promise<void> {
+      await octokit.rest.repos.createCommitStatus({
+        owner,
+        repo,
+        sha: input.sha,
+        state: input.state,
+        context: input.context,
+        description: input.description,
+        target_url: input.targetUrl,
       });
     },
   };

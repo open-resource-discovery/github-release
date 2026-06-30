@@ -453,9 +453,55 @@ describe("createChangelogPr", () => {
     ]);
   });
 
+  test("mirrors dispatched CI jobs as commit statuses on the PR head SHA", async () => {
+    const git = baseGitPort();
+    const createCommitStatusCalls: {
+      sha: string;
+      state: string;
+      context: string;
+    }[] = [];
+    const client = createFakeGitHubClient({
+      createPullRequest: () =>
+        Promise.resolve({
+          html_url: "https://github.com/owner/repo/pull/1",
+          head: { sha: "remote-head-sha" },
+        }),
+      createWorkflowDispatch: () => Promise.resolve(),
+      listWorkflowRuns: () => Promise.resolve([SUCCESSFUL_RUN]),
+      getWorkflowRun: () =>
+        Promise.resolve({ status: "completed", conclusion: "success" }),
+      listJobsForWorkflowRun: () =>
+        Promise.resolve([
+          { name: "Dummy CI Check", conclusion: "success", html_url: null },
+        ]),
+      createCheckRun: () => Promise.resolve(),
+      createCommitStatus: (_owner, _repo, input) => {
+        createCommitStatusCalls.push({
+          sha: input.sha,
+          state: input.state,
+          context: input.context,
+        });
+        return Promise.resolve();
+      },
+    });
+
+    await createChangelogPr(
+      buildConfig({ ciWorkflows: { mode: "explicit", workflows: ["x.yml"] } }),
+      buildSetup(),
+      buildChangelog(),
+      git,
+      client,
+    );
+
+    expect(createCommitStatusCalls).toEqual([
+      { sha: "remote-head-sha", state: "success", context: "Dummy CI Check" },
+    ]);
+  });
+
   test("a failing job still creates a check run and fails the overall call", async () => {
     const git = baseGitPort();
     const createCheckRunCalls: { name: string; conclusion: string }[] = [];
+    const createCommitStatusCalls: { state: string; context: string }[] = [];
     const client = createFakeGitHubClient({
       createPullRequest: () =>
         Promise.resolve({
@@ -478,6 +524,13 @@ describe("createChangelogPr", () => {
         });
         return Promise.resolve();
       },
+      createCommitStatus: (_owner, _repo, input) => {
+        createCommitStatusCalls.push({
+          state: input.state,
+          context: input.context,
+        });
+        return Promise.resolve();
+      },
     });
 
     await expect(
@@ -496,6 +549,9 @@ describe("createChangelogPr", () => {
 
     expect(createCheckRunCalls).toEqual([
       { name: "Failing Check", conclusion: "failure" },
+    ]);
+    expect(createCommitStatusCalls).toEqual([
+      { state: "failure", context: "Failing Check" },
     ]);
   });
 

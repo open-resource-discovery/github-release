@@ -22,6 +22,7 @@ export function createFakeGitHubClient(
     getWorkflowRun: () => notConfigured("getWorkflowRun"),
     listJobsForWorkflowRun: () => notConfigured("listJobsForWorkflowRun"),
     createCheckRun: () => notConfigured("createCheckRun"),
+    createCommitStatus: () => Promise.resolve(),
   };
 
   return { ...base, ...overrides };
