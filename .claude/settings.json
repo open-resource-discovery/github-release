@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pwd)",
+      "Bash(ls*)",
+      "Bash(dir*)",
+      "Bash(Get-ChildItem*)",
+      "Bash(Get-Content*)",
+      "Bash(Select-String*)",
+      "Bash(Test-Path*)",
+      "Bash(npm install*)",
+      "Bash(npm ci*)",
+      "Bash(npm run *)",
+      "Bash(npm test*)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(Start-Sleep -Seconds 5)",
+      "Bash(powershell -Command \"docker ps\")"
+    ],
+    "deny": [
+      "Bash(git commit*)",
+      "Bash(git push*)",
+      "Bash(git tag*)",
+      "Bash(git reset --hard*)",
+      "Bash(rm -rf*)",
+      "Bash(Remove-Item * -Recurse*)",
+      "Bash(del *)",
+      "Bash(rmdir *)"
+    ],
+    "ask": [
+      "Bash(git add*)",
+      "Bash(git restore*)",
+      "Bash(git checkout*)",
+      "Bash(git stash*)",
+      "Bash(mkdir*)",
+      "Bash(New-Item*)",
+      "Bash(Copy-Item*)",
+      "Bash(Move-Item*)"
+    ],
+    "defaultMode": "default"
+  }
+}

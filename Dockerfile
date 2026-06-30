@@ -14,6 +14,7 @@ COPY . .
 
 # Compile TypeScript files
 RUN npm run build
+RUN test -f /app/dist/src/main.js
 
 # Remove unnecessary files after build
 RUN npm prune --production
@@ -38,5 +39,5 @@ RUN apk add --no-cache git jq curl
 RUN chmod +x /app/scripts/*.sh
 RUN chmod +x /app/dist/src/release.js
 
-# Set the entrypoint script
-ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
+# Set the entrypoint to the compiled TypeScript runtime
+ENTRYPOINT ["node", "/app/dist/src/main.js"]
