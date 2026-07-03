@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:24.17.0-alpine AS build
+FROM node:24.18.0-alpine AS build
 
 WORKDIR /app
 
@@ -14,7 +14,6 @@ COPY . .
 
 # Compile TypeScript files
 RUN npm run build
-RUN test -f /app/dist/src/main.js
 
 # Remove unnecessary files after build
 RUN npm prune --production
@@ -25,7 +24,7 @@ RUN rm -rf ./src \
            ./tsconfig.prod.json
 
 # Stage 2: Production
-FROM node:24.17.0-alpine
+FROM node:24.18.0-alpine
 
 WORKDIR /app
 
@@ -39,5 +38,5 @@ RUN apk add --no-cache git jq curl
 RUN chmod +x /app/scripts/*.sh
 RUN chmod +x /app/dist/src/release.js
 
-# Set the entrypoint to the compiled TypeScript runtime
-ENTRYPOINT ["node", "/app/dist/src/main.js"]
+# Set the entrypoint script
+ENTRYPOINT ["/bin/sh", "/app/scripts/entrypoint.sh"]
