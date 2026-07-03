@@ -154,6 +154,11 @@ describe("git", () => {
       const localDir = fs.mkdtempSync(path.join(os.tmpdir(), "git-local-"));
       fs.rmSync(localDir, { recursive: true, force: true });
       requireGit(["clone", repoDir, localDir]);
+      requireGit(["config", "user.name", "test-actor"], { cwd: localDir });
+      requireGit(
+        ["config", "user.email", "test-actor@users.noreply.github.com"],
+        { cwd: localDir },
+      );
       requireGit(
         ["checkout", "-b", "feature-branch", "origin/feature-branch"],
         {
