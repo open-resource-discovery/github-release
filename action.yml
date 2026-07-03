@@ -49,6 +49,10 @@ inputs:
     required: false
     default: "auto"
 
+outputs:
+  release-url:
+    description: "URL of the created GitHub release."
+
 runs:
   using: "docker"
   image: "Dockerfile"
