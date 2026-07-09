@@ -18,6 +18,7 @@ export async function main(): Promise<void> {
   await runPipeline(config);
 }
 
+/* istanbul ignore next */
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((caughtError: unknown) => {
     const message =

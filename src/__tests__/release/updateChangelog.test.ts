@@ -281,4 +281,90 @@ describe("updateChangelog", () => {
 
     expect(pullCalled).toBe(false);
   });
+
+  test("saves changelog before branch switch when unstaged changes exist and not dry-run", async () => {
+    fs.writeFileSync(
+      path.join(workspaceDir, "CHANGELOG.md"),
+      ["# Changelog", "", "## [unreleased]", "", "Description", ""].join("\n"),
+      "utf8",
+    );
+
+    let addCalled = false;
+    let commitCalled = false;
+    const config = buildConfig(workspaceDir);
+    const setup = buildSetup();
+    const collected = buildCollected();
+    const git = createFakeGitPort({
+      fetchBranches: () => undefined,
+      hasDiffAgainstRef: () => true,
+      hasUnstagedChanges: () => true,
+      pullTargetBranch: () => undefined,
+      add: () => {
+        addCalled = true;
+      },
+      commit: () => {
+        commitCalled = true;
+      },
+    });
+
+    await updateChangelog(config, setup, collected, git);
+
+    expect(addCalled).toBe(true);
+    expect(commitCalled).toBe(true);
+  });
+
+  test("skips saving changelog in dry-run even when unstaged changes exist", async () => {
+    fs.writeFileSync(
+      path.join(workspaceDir, "CHANGELOG.md"),
+      ["# Changelog", "", "## [unreleased]", "", "Description", ""].join("\n"),
+      "utf8",
+    );
+
+    let addCalled = false;
+    const config = buildConfig(workspaceDir, { dryRun: true });
+    const setup = buildSetup();
+    const collected = buildCollected();
+    const git = createFakeGitPort({
+      fetchBranches: () => undefined,
+      hasDiffAgainstRef: () => true,
+      hasUnstagedChanges: () => true,
+      pullTargetBranch: () => undefined,
+      add: () => {
+        addCalled = true;
+      },
+    });
+
+    await updateChangelog(config, setup, collected, git);
+
+    expect(addCalled).toBe(false);
+  });
+
+  test("handles a changelog with no [unreleased] section without throwing", async () => {
+    const workspaceDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "changelog-test-"),
+    );
+
+    try {
+      fs.writeFileSync(
+        path.join(workspaceDir, "CHANGELOG.md"),
+        "## [1.0.0] - 2025-01-01\n\n### Added\n\n- Initial release.\n",
+        "utf8",
+      );
+
+      const config = buildConfig(workspaceDir);
+      const setup = buildSetup();
+      const collected = buildCollected();
+      const git = createFakeGitPort({
+        fetchBranches: () => undefined,
+        hasDiffAgainstRef: () => false,
+        hasUnstagedChanges: () => false,
+      });
+
+      const result = await updateChangelog(config, setup, collected, git);
+
+      expect(result.updated).toBe(true);
+    } finally {
+      fs.rmSync(workspaceDir, { recursive: true, force: true });
+    }
+  });
 });

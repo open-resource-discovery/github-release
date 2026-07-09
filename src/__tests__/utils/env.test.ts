@@ -19,6 +19,10 @@ describe("getEnv", () => {
     expect(getEnv("MISSING", {})).toBeUndefined();
   });
 
+  test("uses process.env by default", () => {
+    expect(getEnv("__DEFINITELY_NOT_SET_VAR_XYZ123__")).toBeUndefined();
+  });
+
   test("returns undefined for empty string", () => {
     const env = { MY_VAR: "" };
     expect(getEnv("MY_VAR", env)).toBeUndefined();
@@ -37,6 +41,12 @@ describe("getRequiredEnv", () => {
     );
   });
 
+  test("uses process.env by default and throws for missing var", () => {
+    expect(() =>
+      getRequiredEnv("__DEFINITELY_NOT_SET_VAR_XYZ123__"),
+    ).toThrow("__DEFINITELY_NOT_SET_VAR_XYZ123__ is required but not set.");
+  });
+
   test("throws when empty string", () => {
     expect(() => getRequiredEnv("MY_VAR", { MY_VAR: "" })).toThrow(
       "MY_VAR is required but not set.",
@@ -45,6 +55,12 @@ describe("getRequiredEnv", () => {
 });
 
 describe("getBooleanEnv", () => {
+  test("uses process.env by default and returns default for missing var", () => {
+    expect(getBooleanEnv("__DEFINITELY_NOT_SET_VAR_XYZ123__", false)).toBe(
+      false,
+    );
+  });
+
   test("returns true only for exact string 'true'", () => {
     expect(getBooleanEnv("FLAG", false, { FLAG: "true" })).toBe(true);
   });

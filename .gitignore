@@ -15,12 +15,4 @@ yarn-error.log
 # GitHub Actions cache
 .github/workflows/node_modules/
 
-# Claude Code local state (worktrees, shell snapshots, plans, session data)
-.claude/worktrees/
-.claude/shell-snapshots/
-.claude/plans/
-.claude/projects/
-.claude/todos/
-.claude/history/
-.claude/*.local.json
-.claude/settings.local.json
+.claude
