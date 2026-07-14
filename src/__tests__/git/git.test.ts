@@ -274,12 +274,7 @@ describe("git", () => {
         requireGit(["config", "--global", "user.name", originalName]);
       }
       if (originalEmail !== undefined) {
-        requireGit([
-          "config",
-          "--global",
-          "user.email",
-          originalEmail,
-        ]);
+        requireGit(["config", "--global", "user.email", originalEmail]);
       }
     });
 
