@@ -253,16 +253,69 @@ describe("git", () => {
   });
 
   describe("configUser", () => {
-    test("runs without throwing", () => {
-      expect(() => configUser("test-actor")).not.toThrow();
+    let originalName: string | undefined;
+    let originalEmail: string | undefined;
+
+    beforeEach(() => {
+      try {
+        originalName = requireGit(["config", "--global", "user.name"]);
+      } catch {
+        originalName = undefined;
+      }
+      try {
+        originalEmail = requireGit(["config", "--global", "user.email"]);
+      } catch {
+        originalEmail = undefined;
+      }
+    });
+
+    afterEach(() => {
+      if (originalName !== undefined) {
+        requireGit(["config", "--global", "user.name", originalName]);
+      }
+      if (originalEmail !== undefined) {
+        requireGit([
+          "config",
+          "--global",
+          "user.email",
+          originalEmail,
+        ]);
+      }
+    });
+
+    test("sets global user.name and user.email", () => {
+      configUser("test-actor");
+      expect(requireGit(["config", "--global", "user.name"])).toBe(
+        "test-actor",
+      );
+      expect(requireGit(["config", "--global", "user.email"])).toBe(
+        "test-actor@users.noreply.github.com",
+      );
     });
   });
 
   describe("configGitHttpAuth", () => {
-    test("runs without throwing", () => {
-      expect(() =>
-        configGitHttpAuth("https://github.com", "token123"),
-      ).not.toThrow();
+    const fakeHost = "https://git.example.test";
+    const fakeToken = "test-token-xyz";
+
+    afterEach(() => {
+      execGit([
+        "config",
+        "--global",
+        "--unset-all",
+        `url.https://x-access-token:${fakeToken}@git.example.test/.insteadOf`,
+      ]);
+    });
+
+    test("sets the global URL insteadOf rewrite rule", () => {
+      configGitHttpAuth(fakeHost, fakeToken);
+      const value = requireGit([
+        "config",
+        "--global",
+        "--get",
+        `url.https://x-access-token:${fakeToken}@git.example.test/.insteadOf`,
+      ]);
+      expect(value).toBe("https://git.example.test/");
     });
   });
 
