@@ -10,7 +10,6 @@
   },
   "license": "Apache-2.0",
   "author": "SAP SE",
-  "main": "index.js",
   "scripts": {
     "test": "node --experimental-vm-modules --no-warnings=ExperimentalWarning node_modules/jest/bin/jest.js --watchAll",
     "test:ci": "node --experimental-vm-modules --no-warnings=ExperimentalWarning node_modules/jest/bin/jest.js --ci --collectCoverage",
@@ -22,8 +21,7 @@
   },
   "dependencies": {
     "@actions/core": "3.0.1",
-    "@actions/github": "9.1.1",
-    "tsx": "4.23.0"
+    "@actions/github": "9.1.1"
   },
   "devDependencies": {
     "@jest/globals": "30.4.1",
@@ -36,6 +34,7 @@
     "jest-environment-node": "30.4.1",
     "prettier": "3.9.4",
     "ts-jest": "29.4.11",
+    "tsx": "4.23.0",
     "typescript": "5.9.3"
   }
 }

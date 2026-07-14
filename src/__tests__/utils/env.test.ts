@@ -42,9 +42,9 @@ describe("getRequiredEnv", () => {
   });
 
   test("uses process.env by default and throws for missing var", () => {
-    expect(() =>
-      getRequiredEnv("__DEFINITELY_NOT_SET_VAR_XYZ123__"),
-    ).toThrow("__DEFINITELY_NOT_SET_VAR_XYZ123__ is required but not set.");
+    expect(() => getRequiredEnv("__DEFINITELY_NOT_SET_VAR_XYZ123__")).toThrow(
+      "__DEFINITELY_NOT_SET_VAR_XYZ123__ is required but not set.",
+    );
   });
 
   test("throws when empty string", () => {

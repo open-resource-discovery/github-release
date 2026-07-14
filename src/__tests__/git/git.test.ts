@@ -237,7 +237,9 @@ describe("git", () => {
         expect(() => fetchBranches({ cwd: localDir })).not.toThrow();
         expect(() => fetchTags({ cwd: localDir })).not.toThrow();
         expect(() => fetchBranchesAndTags({ cwd: localDir })).not.toThrow();
-        expect(() => fetchTargetBranch("main", { cwd: localDir })).not.toThrow();
+        expect(() =>
+          fetchTargetBranch("main", { cwd: localDir }),
+        ).not.toThrow();
       } finally {
         fs.rmSync(localDir, { recursive: true, force: true });
       }
@@ -368,11 +370,7 @@ describe("git", () => {
       );
 
       requireGit(["checkout", "-b", "push-test-branch"], { cwd: localDir });
-      fs.writeFileSync(
-        path.join(localDir, "pushed.txt"),
-        "pushed\n",
-        "utf8",
-      );
+      fs.writeFileSync(path.join(localDir, "pushed.txt"), "pushed\n", "utf8");
       add("pushed.txt", { cwd: localDir });
       commit("add pushed.txt", { cwd: localDir });
 

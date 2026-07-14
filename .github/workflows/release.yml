@@ -19,13 +19,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - id: release
-        uses: ./
+      - uses: ./
         with:
           tag-template: "v<version>"
           changelog-file-path: "CHANGELOG.md"
           ci-workflows: "auto"
-
-      - name: Print release URL
-        if: steps.release.outputs.release-url != ''
-        run: echo "Released at ${{ steps.release.outputs.release-url }}"
