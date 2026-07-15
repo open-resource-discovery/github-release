@@ -430,3 +430,57 @@ describe("git", () => {
     });
   });
 });
+
+// Cover the default-options branches (options: GitOptions = {}) by calling
+// read-only functions without the optional second argument. These run against
+// the process working directory, which is always a git repo in CI and locally.
+describe("git default options (no cwd argument)", () => {
+  test("execGit uses process cwd when options are omitted", () => {
+    const result = execGit(["rev-parse", "HEAD"]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.trim()).toMatch(/^[0-9a-f]{40}$/);
+  });
+
+  test("requireGit uses process cwd when options are omitted", () => {
+    const output = requireGit(["rev-parse", "--abbrev-ref", "HEAD"]);
+    expect(typeof output).toBe("string");
+    expect(output.length).toBeGreaterThan(0);
+  });
+
+  test("tagList uses process cwd when options are omitted", () => {
+    expect(Array.isArray(tagList())).toBe(true);
+  });
+
+  test("listTagsSortedByVersionDescending uses process cwd when options are omitted", () => {
+    expect(Array.isArray(listTagsSortedByVersionDescending())).toBe(true);
+  });
+
+  test("revParse returns undefined for a missing ref when options are omitted", () => {
+    expect(revParse("refs/heads/__no_such_branch__")).toBeUndefined();
+  });
+
+  test("tagExists returns false for a non-existent tag when options are omitted", () => {
+    expect(tagExists("__no-such-tag-xyz__")).toBe(false);
+  });
+
+  test("getHeadSha returns a 40-char SHA when options are omitted", () => {
+    expect(getHeadSha()).toMatch(/^[0-9a-f]{40}$/);
+  });
+
+  test("gitLog returns output when options are omitted", () => {
+    const log = gitLog("HEAD", "%s", 1);
+    expect(typeof log).toBe("string");
+  });
+
+  test("hasDiffAgainstRef returns a boolean when options are omitted", () => {
+    expect(typeof hasDiffAgainstRef("HEAD", "README.md")).toBe("boolean");
+  });
+
+  test("hasUnstagedChanges returns a boolean when options are omitted", () => {
+    expect(typeof hasUnstagedChanges("README.md")).toBe("boolean");
+  });
+
+  test("branchExistsRemote returns a boolean when options are omitted", () => {
+    expect(typeof branchExistsRemote("__no-such-branch__")).toBe("boolean");
+  });
+});

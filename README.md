@@ -17,6 +17,22 @@ Automates GitHub release creation and changelog updates, generating detailed rel
 
 The GitHub token provided must have the necessary scope (`repo` for private repositories).
 
+### Required Permissions
+
+The action requires the following GitHub Actions permissions:
+
+| Permission             | Reason                                                       |
+| ---------------------- | ------------------------------------------------------------ |
+| `contents: write`      | Push changelog branch, create tags and releases              |
+| `pull-requests: write` | Open the changelog PR                                        |
+| `actions: write`       | Dispatch CI workflows for the changelog PR                   |
+| `checks: write`        | Mirror CI job results as Check Runs on the changelog PR      |
+| `statuses: write`      | Mirror CI job results as Commit Statuses on the changelog PR |
+
+> **Note:** `actions: write`, `checks: write`, and `statuses: write` are only needed when
+> `ci-workflows` is not set to `none` or `false`. If you disable CI dispatch, only
+> `contents: write` and `pull-requests: write` are required.
+
 ### Workflow Configuration Example
 
 Add the following configuration to your GitHub Actions workflow:
@@ -26,6 +42,13 @@ name: "Release Workflow"
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+  checks: write
+  statuses: write
 
 jobs:
   create-release:
