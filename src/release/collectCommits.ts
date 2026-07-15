@@ -2,7 +2,10 @@ import type { ActionConfig } from "../config.js";
 import type { GitOptions, GitPort } from "../git/git.js";
 import type { GitHubClient, PullRequestSummary } from "../github/client.js";
 import { warning } from "../utils/log.js";
-import { parseRepositoryCoordinates } from "../utils/repository.js";
+import {
+  parseRepositoryCoordinates,
+  type RepositoryCoordinates,
+} from "../utils/repository.js";
 import type { ReleaseSetup } from "./setupRelease.js";
 
 function getErrorMessage(error: unknown): string {
@@ -162,10 +165,11 @@ function parsePrReferenceFromSubject(subject: string): ParsedPrReference {
 async function buildCommitLine(
   commit: ParsedCommit,
   config: ActionConfig,
+  repository: RepositoryCoordinates,
   client: GitHubClient,
   seenPrNumbers: Set<string>,
 ): Promise<string | undefined> {
-  const { owner, repo } = parseRepositoryCoordinates(config.githubRepository);
+  const { owner, repo } = repository;
   const commitUrl = `${config.githubServerUrl}/${config.githubRepository}/commit/${commit.sha}`;
 
   let commitLogin: string | undefined;
@@ -250,6 +254,7 @@ export async function collectCommits(
   git: GitPort,
   client: GitHubClient,
 ): Promise<CollectedReleaseData> {
+  const repository = parseRepositoryCoordinates(config.githubRepository);
   const gitOptions: GitOptions = { cwd: config.githubWorkspace };
 
   if (!config.dryRun) {
@@ -286,7 +291,13 @@ export async function collectCommits(
   const commitLogLines: string[] = [];
 
   for (const commit of commits) {
-    const line = await buildCommitLine(commit, config, client, seenPrNumbers);
+    const line = await buildCommitLine(
+      commit,
+      config,
+      repository,
+      client,
+      seenPrNumbers,
+    );
 
     if (line !== undefined) {
       commitLogLines.push(line);

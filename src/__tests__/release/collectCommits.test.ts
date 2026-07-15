@@ -52,6 +52,26 @@ function commitLine(
 }
 
 describe("collectCommits", () => {
+  test("throws immediately when githubRepository is malformed, before any per-commit processing", async () => {
+    const config = buildConfig({ githubRepository: "bad-value" });
+    const setup = buildSetup({ tagExists: true });
+    let fetchCalled = false;
+    const git = createFakeGitPort({
+      fetchBranchesAndTags: () => {
+        fetchCalled = true;
+      },
+      tagList: () => [],
+      gitLog: () =>
+        commitLine("sha1", "abc1234", "Alice", "alice@example.com", "Fix"),
+    });
+    const client = createFakeGitHubClient();
+
+    await expect(collectCommits(config, setup, git, client)).rejects.toThrow(
+      /GITHUB_REPOSITORY must be in the form/,
+    );
+    expect(fetchCalled).toBe(false);
+  });
+
   test("falls back to 'No changes since last release' when there are no commits", async () => {
     const config = buildConfig();
     const setup = buildSetup({ tagExists: true });
