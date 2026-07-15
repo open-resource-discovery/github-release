@@ -19,6 +19,7 @@ export type ReleaseResponse = {
 type CreateReleaseHandler = (input: ReleaseRequest) => Promise<ReleaseResponse>;
 
 const releaseCalls: ReleaseRequest[] = [];
+const octokitTokens: string[] = [];
 
 const defaultHandler: CreateReleaseHandler = (
   input: ReleaseRequest,
@@ -38,13 +39,15 @@ export const context: { repo: { owner: string; repo: string } } = {
   },
 };
 
-export function getOctokit(_token: string): {
+export function getOctokit(token: string): {
   rest: {
     repos: {
       createRelease: (input: ReleaseRequest) => Promise<ReleaseResponse>;
     };
   };
 } {
+  octokitTokens.push(token);
+
   return {
     rest: {
       repos: {
@@ -59,6 +62,7 @@ export function getOctokit(_token: string): {
 
 export function __resetGithubMock(): void {
   releaseCalls.length = 0;
+  octokitTokens.length = 0;
   context.repo.owner = "test-owner";
   context.repo.repo = "test-repo";
   createReleaseHandler = defaultHandler;
@@ -75,4 +79,8 @@ export function __setCreateReleaseHandler(handler: CreateReleaseHandler): void {
 
 export function __getCreateReleaseCalls(): readonly ReleaseRequest[] {
   return [...releaseCalls];
+}
+
+export function __getOctokitTokens(): readonly string[] {
+  return [...octokitTokens];
 }

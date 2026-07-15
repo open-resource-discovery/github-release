@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Install NPM dependencies
         run: npm ci
@@ -34,7 +34,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Install NPM dependencies
         run: npm ci
@@ -50,7 +50,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Install NPM dependencies
         run: npm ci
@@ -67,3 +67,19 @@ jobs:
         uses: ./
         with:
           dry-run: true
+
+  docker-smoke:
+    name: Docker Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build --no-cache -t github-release-action:test .
+
+      - name: Run smoke test
+        run: |
+          output="$(docker run --rm github-release-action:test --smoke-test)"
+          echo "$output"
+          echo "$output" | grep -qF "GITHUB_RELEASE_ACTION_RUNTIME=typescript-v1"
+          echo "$output" | grep -qF "TypeScript Docker runtime smoke test passed."

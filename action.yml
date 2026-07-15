@@ -1,9 +1,9 @@
 name: "Release Creator and Changelog Updater"
 description: >
-  Extracts the latest version from package.json and updates changelog.md.
-  Creates a release with information from the changelog.
-  Prepares changelog.md for the next run by adding a new 'unreleased' section.
-  Dynamically lists Git commits since the last release and adds contributors.
+  Reads the version from package.json (or an explicit override), updates CHANGELOG.md,
+  and creates a GitHub release. On first run it opens a changelog PR for review,
+  on subsequent runs it publishes the release. Commit log with contributor mentions
+  is included automatically.
 
 inputs:
   github-token:
@@ -35,9 +35,23 @@ inputs:
     required: false
     default: "CHANGELOG.md"
   version:
-    description: "Explicit version for releasing (overwrites package.json)"
+    description: "Explicit version override (takes precedence over package.json)"
     required: false
     default: ""
+  ci-workflows:
+    description: >
+      Comma-separated workflow file names to dispatch after creating a changelog PR.
+      Use 'auto' (default) to dispatch all workflow_dispatch-enabled workflows except the release workflow itself.
+      Use 'none' or 'false' to disable dispatch entirely.
+      Dispatched CI job results are mirrored as GitHub Check Runs on the changelog PR head SHA,
+      so required checks are satisfied automatically.
+      Requires: permissions: actions: write, checks: write (plus contents: write, pull-requests: write).
+    required: false
+    default: "auto"
+
+outputs:
+  release-url:
+    description: "URL of the created GitHub release."
 
 runs:
   using: "docker"
