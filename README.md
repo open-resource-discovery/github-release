@@ -67,6 +67,26 @@ jobs:
         uses: open-resource-discovery/github-release@main
 ```
 
+## Inputs
+
+| Input | Default | Description |
+|---|---|---|
+| `github-token` | `${{ github.token }}` | GitHub token for authentication. The built-in token is sufficient - no PAT needed. |
+| `tag-template` | `v<version>` | Tag name template. Use `<version>` as placeholder, e.g. `ms/<version>`. |
+| `changelog-file-path` | `CHANGELOG.md` | Path to the changelog file. |
+| `version` | _(from package.json)_ | Explicit version override. Takes precedence over `package.json`. |
+| `ci-workflows` | `auto` | Workflows to dispatch after the changelog PR is created. `auto` dispatches all `workflow_dispatch`-enabled workflows (except the release workflow itself). Pass a comma-separated list to target specific files, or `none`/`false` to disable. |
+| `release-draft` | `false` | Mark the release as a draft. |
+| `release-prerelease` | `false` | Mark the release as a prerelease. |
+| `release-title-prefix` | _(empty)_ | Prefix prepended to the release title. |
+| `dry-run` | `false` | Run without creating tags, PRs, or releases. Useful for testing. |
+
+## Outputs
+
+| Output | Description |
+|---|---|
+| `release-url` | URL of the created GitHub release. |
+
 ## Post-Release Steps
 
 To avoid conflicts or outdated information in your local changelog:
