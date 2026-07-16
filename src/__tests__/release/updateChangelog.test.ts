@@ -128,7 +128,12 @@ describe("updateChangelog", () => {
     const setup = buildSetup();
     const collected = buildCollected();
 
-    const result = await updateChangelog(config, setup, collected, defaultGitPort());
+    const result = await updateChangelog(
+      config,
+      setup,
+      collected,
+      defaultGitPort(),
+    );
 
     expect(result.updated).toBe(true);
     expect(result.changelogFileContent).toBeDefined();
@@ -137,7 +142,6 @@ describe("updateChangelog", () => {
   });
 
   test("new version path: returns updated=true with new changelog content", async () => {
-
     fs.writeFileSync(
       path.join(workspaceDir, "CHANGELOG.md"),
       [

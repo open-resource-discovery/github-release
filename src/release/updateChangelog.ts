@@ -192,9 +192,14 @@ export function updateChangelog(
 
   const changelogFileContent =
     (header ? `${header}\n\n` : "") +
-    ["## [unreleased]", "", `## [[${setup.version}](${versionLink})] - ${todayDate()}`, description, "", rest].join(
-      "\n",
-    );
+    [
+      "## [unreleased]",
+      "",
+      `## [[${setup.version}](${versionLink})] - ${todayDate()}`,
+      description,
+      "",
+      rest,
+    ].join("\n");
 
   const releaseBody = renderReleaseBody(
     description,
