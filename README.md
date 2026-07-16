@@ -4,6 +4,10 @@
 
 Automates GitHub release creation and changelog updates, generating detailed release notes with commits and contributors dynamically.
 
+## Why this action?
+
+Most release actions require a Personal Access Token (PAT) to open pull requests and trigger CI on protected branches. This action works entirely with the built-in `GITHUB_TOKEN` - no PAT, no extra secret management.
+
 ## Features
 
 - Automatically extracts the latest version from `package.json`.
