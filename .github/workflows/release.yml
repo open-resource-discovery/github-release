@@ -20,7 +20,3 @@ jobs:
           fetch-depth: 0
 
       - uses: ./
-        with:
-          tag-template: "v<version>"
-          changelog-file-path: "CHANGELOG.md"
-          ci-workflows: "auto"

@@ -63,8 +63,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create GitHub Release
-        uses: open-resource-discovery/github-release@main
+      - uses: open-resource-discovery/github-release@main
 ```
 
 ## Inputs
