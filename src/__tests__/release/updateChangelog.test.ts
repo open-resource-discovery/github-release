@@ -115,7 +115,29 @@ describe("updateChangelog", () => {
     );
   });
 
+  test("new version path: generated changelog does not start with blank lines when there is no header before [unreleased]", async () => {
+    fs.writeFileSync(
+      path.join(workspaceDir, "CHANGELOG.md"),
+      ["## [unreleased]", "", "### Added", "", "- First release", ""].join(
+        "\n",
+      ),
+      "utf8",
+    );
+
+    const config = buildConfig(workspaceDir);
+    const setup = buildSetup();
+    const collected = buildCollected();
+
+    const result = await updateChangelog(config, setup, collected, defaultGitPort());
+
+    expect(result.updated).toBe(true);
+    expect(result.changelogFileContent).toBeDefined();
+    expect(result.changelogFileContent).not.toMatch(/^\n/);
+    expect(result.changelogFileContent).toMatch(/^## \[unreleased\]/);
+  });
+
   test("new version path: returns updated=true with new changelog content", async () => {
+
     fs.writeFileSync(
       path.join(workspaceDir, "CHANGELOG.md"),
       [

@@ -190,16 +190,11 @@ export function updateChangelog(
 
   const versionLink = `${config.githubServerUrl}/${config.githubRepository}/releases/tag/${setup.tag}`;
 
-  const changelogFileContent = [
-    header,
-    "",
-    "## [unreleased]",
-    "",
-    `## [[${setup.version}](${versionLink})] - ${todayDate()}`,
-    description,
-    "",
-    rest,
-  ].join("\n");
+  const changelogFileContent =
+    (header ? `${header}\n\n` : "") +
+    ["## [unreleased]", "", `## [[${setup.version}](${versionLink})] - ${todayDate()}`, description, "", rest].join(
+      "\n",
+    );
 
   const releaseBody = renderReleaseBody(
     description,
