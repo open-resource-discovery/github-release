@@ -37,6 +37,12 @@ export async function runPipeline(
   exportSetupState(setup);
 
   if (setup.releaseExists) {
+    if (config.dryRun) {
+      info(
+        `Dry-Run: Release for tag ${setup.tag} already exists. Nothing to do.`,
+      );
+      return;
+    }
     throw new Error(`Release for tag ${setup.tag} already exists.`);
   }
 
@@ -62,6 +68,12 @@ export async function runPipeline(
     throw new Error(
       `Please review and merge the changelog PR before re-running the workflow: ${prResult.prUrl}`,
     );
+  }
+
+  if (config.dryRun) {
+    info(`Dry-Run: Skipping release creation for tag: ${setup.tag}.`);
+    info("GitHub Release Action TypeScript pipeline completed.");
+    return;
   }
 
   await createReleaseForTag(config, setup, changelogResult.releaseBody, client);

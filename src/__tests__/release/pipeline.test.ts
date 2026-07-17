@@ -207,7 +207,7 @@ describe("runPipeline", () => {
     );
   });
 
-  test("dry-run still throws when a release already exists (no dry-run exception)", async () => {
+  test("dry-run resolves silently when a release already exists", async () => {
     fs.writeFileSync(
       path.join(workspaceDir, "CHANGELOG.md"),
       ["# Changelog", "", "## [unreleased]", "", ""].join("\n"),
@@ -215,20 +215,56 @@ describe("runPipeline", () => {
     );
 
     const config = buildConfig(workspaceDir, { dryRun: true });
+    let createReleaseCalled = false;
 
     const git = createFakeGitPort({
       configSafeDirectory: () => undefined,
       configUser: () => undefined,
       configGitHttpAuth: () => undefined,
+      fetchBranchesAndTags: () => undefined,
       tagExists: () => true,
       listTagsSortedByVersionDescending: () => [],
     });
     const client = createFakeGitHubClient({
       getReleaseByTag: () => Promise.resolve({ id: 1 }),
+      createRelease: () => {
+        createReleaseCalled = true;
+        return Promise.resolve({ html_url: "https://example.com" });
+      },
     });
 
-    await expect(runPipeline(config, { git, client })).rejects.toThrow(
-      "Release for tag v1.3.0 already exists.",
+    await expect(runPipeline(config, { git, client })).resolves.toBeUndefined();
+    expect(createReleaseCalled).toBe(false);
+  });
+
+  test("dry-run resolves silently when changelog is unchanged and release does not exist yet", async () => {
+    fs.writeFileSync(
+      path.join(workspaceDir, "CHANGELOG.md"),
+      [
+        "# Changelog",
+        "",
+        "## [[1.3.0](https://github.com/owner/repo/releases/tag/v1.3.0)] - 2026-01-01",
+        "",
+        "Already released",
+        "",
+        "## [unreleased]",
+        "",
+      ].join("\n"),
+      "utf8",
     );
+
+    const config = buildConfig(workspaceDir, { dryRun: true });
+    let createReleaseCalled = false;
+
+    const git = baseGitPort();
+    const client = createFakeGitHubClient({
+      createRelease: () => {
+        createReleaseCalled = true;
+        return Promise.resolve({ html_url: "https://example.com" });
+      },
+    });
+
+    await expect(runPipeline(config, { git, client })).resolves.toBeUndefined();
+    expect(createReleaseCalled).toBe(false);
   });
 });
