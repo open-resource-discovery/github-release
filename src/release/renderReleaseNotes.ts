@@ -6,6 +6,7 @@ export function renderReleaseBody(
   fullChangelogLine?: string,
 ): string {
   const lines = [
+    "### What's new?",
     description,
     "",
     "------",

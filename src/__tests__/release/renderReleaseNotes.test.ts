@@ -12,6 +12,7 @@ describe("renderReleaseBody", () => {
 
     expect(body).toBe(
       [
+        "### What's new?",
         "Some description.",
         "",
         "------",
