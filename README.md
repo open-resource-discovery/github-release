@@ -19,7 +19,7 @@ Most release actions require a Personal Access Token (PAT) to open pull requests
 
 ## Requirements and Setup
 
-The GitHub token provided must have the necessary scope (`repo` for private repositories).
+The workflow must grant the required permissions to the built-in `GITHUB_TOKEN`. No Personal Access Token is required.
 
 ### Required Permissions
 
