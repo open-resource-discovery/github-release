@@ -34,7 +34,7 @@
     "jest-environment-node": "30.5.2",
     "prettier": "3.9.8",
     "ts-jest": "29.4.12",
-    "tsx": "4.23.13",
+    "tsx": "4.23.15",
     "typescript": "5.9.3"
   }
 }
