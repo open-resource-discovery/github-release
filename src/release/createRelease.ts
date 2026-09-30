@@ -23,7 +23,7 @@ export async function createReleaseForTag(
     owner,
     repo,
     tag_name: setup.tag,
-    target_commitish: setup.targetBranch,
+    target_commitish: config.targetCommitish ?? setup.targetBranch,
     name: setup.releaseTitle,
     body: releaseBody,
     draft: config.releaseDraft,
