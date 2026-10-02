@@ -28,7 +28,7 @@
     "@sap/eslint-config": "0.5.2",
     "@tsconfig/node22": "22.0.6",
     "@types/jest": "30.0.0",
-    "@types/node": "24.19.0",
+    "@types/node": "24.19.1",
     "eslint": "10.11.0",
     "jest": "30.5.2",
     "jest-environment-node": "30.5.2",
