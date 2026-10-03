@@ -204,6 +204,35 @@ describe("readActionConfig", () => {
       expect(config.versionOverride).toBe("2.3.4");
     });
 
+    test("targetCommitish is set when INPUT_TARGET-COMMITISH is provided", () => {
+      const config = readActionConfig({
+        ...BASE_ENV,
+        "INPUT_TARGET-COMMITISH": "abc1234def5678",
+      });
+      expect(config.targetCommitish).toBe("abc1234def5678");
+    });
+
+    test("targetCommitish accepts a branch ref", () => {
+      const config = readActionConfig({
+        ...BASE_ENV,
+        "INPUT_TARGET-COMMITISH": "release-only/v1.2.3",
+      });
+      expect(config.targetCommitish).toBe("release-only/v1.2.3");
+    });
+
+    test("targetCommitish is undefined when INPUT_TARGET-COMMITISH is empty string", () => {
+      const config = readActionConfig({
+        ...BASE_ENV,
+        "INPUT_TARGET-COMMITISH": "",
+      });
+      expect(config.targetCommitish).toBeUndefined();
+    });
+
+    test("targetCommitish is undefined when INPUT_TARGET-COMMITISH is not set", () => {
+      const config = readActionConfig(BASE_ENV);
+      expect(config.targetCommitish).toBeUndefined();
+    });
+
     test("githubRefName and githubBaseRef are undefined when not set", () => {
       const config = readActionConfig(BASE_ENV);
       expect(config.githubRefName).toBeUndefined();
