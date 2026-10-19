@@ -143,6 +143,82 @@ describe("createReleaseForTag", () => {
     );
   });
 
+  test("uses setup.targetBranch as target_commitish when config.targetCommitish is absent", async () => {
+    let captured: { target_commitish: string } | undefined;
+    const client = createFakeGitHubClient({
+      createRelease: (input) => {
+        captured = { target_commitish: input.target_commitish };
+        return Promise.resolve({ html_url: "https://example.com/release" });
+      },
+    });
+
+    await createReleaseForTag(
+      buildConfig(),
+      buildSetup({ targetBranch: "main" }),
+      "body",
+      client,
+    );
+
+    expect(captured?.target_commitish).toBe("main");
+  });
+
+  test("uses config.targetCommitish (SHA) over setup.targetBranch when provided", async () => {
+    let captured: { target_commitish: string } | undefined;
+    const client = createFakeGitHubClient({
+      createRelease: (input) => {
+        captured = { target_commitish: input.target_commitish };
+        return Promise.resolve({ html_url: "https://example.com/release" });
+      },
+    });
+
+    await createReleaseForTag(
+      buildConfig({ targetCommitish: "abc1234def5678" }),
+      buildSetup({ targetBranch: "main" }),
+      "body",
+      client,
+    );
+
+    expect(captured?.target_commitish).toBe("abc1234def5678");
+  });
+
+  test("uses config.targetCommitish (branch ref) over setup.targetBranch when provided", async () => {
+    let captured: { target_commitish: string } | undefined;
+    const client = createFakeGitHubClient({
+      createRelease: (input) => {
+        captured = { target_commitish: input.target_commitish };
+        return Promise.resolve({ html_url: "https://example.com/release" });
+      },
+    });
+
+    await createReleaseForTag(
+      buildConfig({ targetCommitish: "release-only/v1.2.3" }),
+      buildSetup({ targetBranch: "main" }),
+      "body",
+      client,
+    );
+
+    expect(captured?.target_commitish).toBe("release-only/v1.2.3");
+  });
+
+  test("falls back to setup.targetBranch when config.targetCommitish is undefined", async () => {
+    let captured: { target_commitish: string } | undefined;
+    const client = createFakeGitHubClient({
+      createRelease: (input) => {
+        captured = { target_commitish: input.target_commitish };
+        return Promise.resolve({ html_url: "https://example.com/release" });
+      },
+    });
+
+    await createReleaseForTag(
+      buildConfig({ targetCommitish: undefined }),
+      buildSetup({ targetBranch: "release-branch" }),
+      "body",
+      client,
+    );
+
+    expect(captured?.target_commitish).toBe("release-branch");
+  });
+
   test("bubbles up API failures clearly", async () => {
     const client = createFakeGitHubClient({
       createRelease: () => Promise.reject(new Error("GitHub API error")),
