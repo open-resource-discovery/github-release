@@ -28,13 +28,13 @@
     "@sap/eslint-config": "0.5.2",
     "@tsconfig/node22": "22.0.6",
     "@types/jest": "30.0.0",
-    "@types/node": "24.19.2",
+    "@types/node": "26.6.6",
     "eslint": "10.14.0",
     "jest": "30.5.2",
     "jest-environment-node": "30.5.2",
     "prettier": "3.9.10",
     "ts-jest": "29.4.15",
     "tsx": "4.23.15",
-    "typescript": "5.9.3"
+    "typescript": "7.0.2"
   }
 }
