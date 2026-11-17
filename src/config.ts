@@ -26,6 +26,7 @@ export type ActionConfig = {
   tagTemplate: string;
   changelogFilePath: string;
   versionOverride?: string;
+  targetCommitish?: string;
   ciWorkflows: CiWorkflowsConfig;
   githubServerUrl: string;
   githubApiUrl: string;
@@ -79,6 +80,7 @@ export function readActionConfig(env: Env = process.env): ActionConfig {
     changelogFilePath:
       getEnv("INPUT_CHANGELOG-FILE-PATH", env) ?? "CHANGELOG.md",
     versionOverride,
+    targetCommitish: getEnv("INPUT_TARGET-COMMITISH", env) || undefined,
     ciWorkflows: parseCiWorkflows(getEnv("INPUT_CI-WORKFLOWS", env)),
     githubServerUrl: getRequiredEnv("GITHUB_SERVER_URL", env),
     githubApiUrl: getRequiredEnv("GITHUB_API_URL", env),
