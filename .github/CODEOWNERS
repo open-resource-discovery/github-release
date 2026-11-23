@@ -1,6 +1,1 @@
-# Review owners for CI and build configuration.
-/.github/ @open-resource-discovery/github-release-admin
-/renovate.json @open-resource-discovery/github-release-admin
-/package.json @open-resource-discovery/github-release-admin
-/package-lock.json @open-resource-discovery/github-release-admin
-/action.yml @open-resource-discovery/github-release-admin
+* @Fannon
