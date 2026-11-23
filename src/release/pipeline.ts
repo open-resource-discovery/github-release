@@ -1,6 +1,6 @@
 import type { ActionConfig } from "../config.js";
-import * as realGit from "../git/git.js";
 import type { GitPort } from "../git/git.js";
+import * as realGit from "../git/git.js";
 import { createGitHubClient, type GitHubClient } from "../github/client.js";
 import { info } from "../utils/log.js";
 import {

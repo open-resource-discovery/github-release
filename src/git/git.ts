@@ -17,6 +17,7 @@ export function execGit(
 ): GitCommandResult {
   const result = spawnSync("git", args, {
     cwd: options.cwd,
+    env: process.env,
     encoding: "utf8",
   });
 

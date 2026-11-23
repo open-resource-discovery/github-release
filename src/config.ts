@@ -1,8 +1,8 @@
 import {
+  type Env,
   getBooleanEnv,
   getEnv,
   getRequiredEnv,
-  type Env,
 } from "./utils/env.js";
 
 export type CiWorkflowsConfig =

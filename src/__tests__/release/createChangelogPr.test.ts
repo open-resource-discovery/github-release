@@ -2,11 +2,11 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { ActionConfig } from "../../config.js";
+import type { GitPort } from "../../git/git.js";
 import { GitHubApiError } from "../../github/client.js";
 import { createChangelogPr } from "../../release/createChangelogPr.js";
 import type { ReleaseSetup } from "../../release/setupRelease.js";
 import type { ChangelogResult } from "../../release/updateChangelog.js";
-import type { GitPort } from "../../git/git.js";
 import { createFakeGitPort } from "../mocks/git-port.js";
 import { createFakeGitHubClient } from "../mocks/github-client.js";
 

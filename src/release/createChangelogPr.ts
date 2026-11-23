@@ -3,9 +3,9 @@ import * as path from "node:path";
 import type { ActionConfig } from "../config.js";
 import type { GitOptions, GitPort } from "../git/git.js";
 import {
-  GitHubApiError,
   type CheckRunConclusion,
   type CommitStatusState,
+  GitHubApiError,
   type GitHubClient,
 } from "../github/client.js";
 import {

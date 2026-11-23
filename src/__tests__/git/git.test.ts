@@ -1,7 +1,15 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "@jest/globals";
 import {
   add,
   branchExistsRemote,
@@ -31,6 +39,27 @@ import {
 } from "../../git/git.js";
 
 describe("git", () => {
+  let globalConfigDir: string;
+  const originalGlobalConfig = process.env.GIT_CONFIG_GLOBAL;
+
+  beforeAll(() => {
+    globalConfigDir = fs.mkdtempSync(
+      path.join(os.tmpdir(), "git-global-config-test-"),
+    );
+    process.env.GIT_CONFIG_GLOBAL = path.join(globalConfigDir, "config");
+    fs.writeFileSync(
+      process.env.GIT_CONFIG_GLOBAL,
+      "[user]\n  name = test-actor\n  email = test-actor@example.test\n",
+    );
+  });
+
+  afterAll(() => {
+    if (originalGlobalConfig === undefined)
+      delete process.env.GIT_CONFIG_GLOBAL;
+    else process.env.GIT_CONFIG_GLOBAL = originalGlobalConfig;
+    fs.rmSync(globalConfigDir, { recursive: true, force: true });
+  });
+
   let repoDir: string;
 
   beforeEach(() => {

@@ -14,10 +14,15 @@
     "test": "node --experimental-vm-modules --no-warnings=ExperimentalWarning node_modules/jest/bin/jest.js --watchAll",
     "test:ci": "node --experimental-vm-modules --no-warnings=ExperimentalWarning node_modules/jest/bin/jest.js --ci --collectCoverage",
     "build": "tsc",
-    "eslint": "eslint . --fix",
-    "eslint:ci": "eslint .",
-    "prettier": "prettier --write \"**/*.{json,yml,yaml,md}\"",
-    "prettier:ci": "prettier --check \"**/*.{json,yml,yaml,md}\""
+    "eslint": "npm run lint",
+    "eslint:ci": "npm run lint",
+    "prettier": "npm run format",
+    "prettier:ci": "npm run format:check",
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --write .",
+    "format": "biome format --write . && oxfmt --no-error-on-unmatched-pattern '**/*.{md,yml,yaml,css,scss,html}'",
+    "format:check": "biome format . && oxfmt --check --no-error-on-unmatched-pattern '**/*.{md,yml,yaml,css,scss,html}'",
+    "check:tooling": "npm run lint && npm run format:check"
   },
   "dependencies": {
     "@actions/core": "3.0.1",
@@ -25,17 +30,16 @@
   },
   "devDependencies": {
     "@jest/globals": "30.5.2",
-    "@sap/eslint-config": "0.5.2",
     "@tsconfig/node22": "22.0.7",
     "@types/jest": "30.0.0",
     "@types/node": "24.19.2",
-    "eslint": "10.15.0",
     "jest": "30.5.2",
     "jest-environment-node": "30.5.2",
-    "prettier": "3.10.1",
     "ts-jest": "29.4.15",
     "tsx": "4.23.15",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@biomejs/biome": "2.6.4",
+    "oxfmt": "0.75.0"
   },
   "engines": {
     "node": ">=26.13.1"
