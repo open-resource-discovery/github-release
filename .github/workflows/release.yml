@@ -4,19 +4,22 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  pull-requests: write
-  actions: write
-  checks: write
-  statuses: write
-
+  contents: read
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
 
+          persist-credentials: true # Needed by the release/push step
       - uses: ./
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+      checks: write
+      statuses: write
+    if: github.ref == 'refs/heads/main'

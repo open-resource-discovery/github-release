@@ -3,10 +3,11 @@
   "extends": [
     "config:recommended",
     "docker:enableMajor",
-    ":pinAllExceptPeerDependencies"
+    ":pinAllExceptPeerDependencies",
+    "helpers:pinGitHubActionDigests"
   ],
   "semanticCommits": "enabled",
-  "enabledManagers": ["npm", "dockerfile"],
+  "enabledManagers": ["npm", "dockerfile", "github-actions"],
   "branchPrefix": "deps/",
   "timezone": "Europe/Berlin",
   "schedule": ["every weekend"],
@@ -31,7 +32,7 @@
     {
       "groupName": "GitHub Actions",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@actions/"]
+      "matchPackageNames": ["/^@actions//"]
     },
     {
       "groupName": "TypeScript Build Tools",
