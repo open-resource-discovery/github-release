@@ -28,6 +28,17 @@ function isBlank(value: string): boolean {
   return value.trim() === "";
 }
 
+function trimSectionBlankLines(section: string, newline: string): string {
+  const lines = section.split("\n");
+  const hasContent = (line: string): boolean => !isBlank(line);
+  const first = lines.findIndex(hasContent);
+  if (first === -1) {
+    return "";
+  }
+  const last = lines.findLastIndex(hasContent);
+  return lines.slice(first, last + 1).join(newline);
+}
+
 function findNextHeadingIndex(lines: string[], fromIndex: number): number {
   for (let i = fromIndex; i < lines.length; i += 1) {
     if (/^## \[/.test(lines[i])) {
@@ -155,7 +166,8 @@ export function updateChangelog(
     config.githubWorkspace,
     config.changelogFilePath,
   );
-  const lines = readTextFile(changelogPath).split("\n");
+  const changelog = readTextFile(changelogPath);
+  const lines = changelog.split(/\r?\n/);
 
   const existingDescription = extractExistingVersionDescription(
     lines,
@@ -190,16 +202,17 @@ export function updateChangelog(
 
   const versionLink = `${config.githubServerUrl}/${config.githubRepository}/releases/tag/${setup.tag}`;
 
-  const changelogFileContent =
-    (header ? `${header}\n\n` : "") +
-    [
-      "## [unreleased]",
-      "",
-      `## [[${setup.version}](${versionLink})] - ${todayDate()}`,
-      description,
-      "",
-      rest,
-    ].join("\n");
+  const newline = changelog.includes("\r\n") ? "\r\n" : "\n";
+  const sections = [
+    header,
+    "## [unreleased]",
+    `## [[${setup.version}](${versionLink})] - ${todayDate()}`,
+    description,
+    rest,
+  ]
+    .map((section) => trimSectionBlankLines(section, newline))
+    .filter(Boolean);
+  const changelogFileContent = sections.join(newline + newline) + newline;
 
   const releaseBody = renderReleaseBody(
     description,
