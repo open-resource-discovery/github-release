@@ -26,8 +26,6 @@ jobs:
       - name: Prettier
         run: npm run prettier:ci
 
-    permissions:
-      contents: read
   tests:
     name: Tests
     runs-on: ubuntu-latest
@@ -44,8 +42,6 @@ jobs:
       - name: Tests
         run: npm run test:ci
 
-    permissions:
-      contents: read
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -62,8 +58,6 @@ jobs:
       - name: Build
         run: npm run build
 
-    permissions:
-      contents: read
   github-action-test:
     name: Github Action Test
     runs-on: ubuntu-latest
@@ -76,8 +70,6 @@ jobs:
         with:
           dry-run: true
 
-    permissions:
-      contents: read
   docker-smoke:
     name: Docker Smoke Test
     runs-on: ubuntu-latest
@@ -94,7 +86,5 @@ jobs:
           echo "$output"
           echo "$output" | grep -qF "GITHUB_RELEASE_ACTION_RUNTIME=typescript-v1"
           echo "$output" | grep -qF "TypeScript Docker runtime smoke test passed."
-    permissions:
-      contents: read
 permissions:
   contents: read

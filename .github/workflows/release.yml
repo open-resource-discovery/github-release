@@ -16,10 +16,9 @@ jobs:
 
           persist-credentials: true # Needed by the release/push step
       - uses: ./
+        with:
+          ci-workflows: none
     permissions:
       contents: write
       pull-requests: write
-      actions: write
-      checks: write
-      statuses: write
     if: github.ref == 'refs/heads/main'
