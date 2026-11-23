@@ -73,18 +73,14 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          persist-credentials: true # Needed by the release/push step
+          persist-credentials: false
       - name: Run Github Action in dry-run mode
         uses: ./
         with:
           dry-run: true
 
     permissions:
-      contents: write
-      pull-requests: write
-      actions: write
-      checks: write
-      statuses: write
+      contents: read
   docker-smoke:
     name: Docker Smoke Test
     runs-on: ubuntu-latest
