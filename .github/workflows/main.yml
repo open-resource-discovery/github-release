@@ -11,12 +11,12 @@ jobs:
     name: Static linting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: "24"
-
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26.13.1"
       - name: Install NPM dependencies
         run: npm ci
 
@@ -30,12 +30,12 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: "24"
-
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26.13.1"
       - name: Install NPM dependencies
         run: npm ci
 
@@ -46,12 +46,12 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: "24"
-
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26.13.1"
       - name: Install NPM dependencies
         run: npm ci
 
@@ -62,7 +62,9 @@ jobs:
     name: Github Action Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Run Github Action in dry-run mode
         uses: ./
         with:
@@ -72,8 +74,9 @@ jobs:
     name: Docker Smoke Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Build Docker image
         run: docker build --no-cache -t github-release-action:test .
 
@@ -83,3 +86,5 @@ jobs:
           echo "$output"
           echo "$output" | grep -qF "GITHUB_RELEASE_ACTION_RUNTIME=typescript-v1"
           echo "$output" | grep -qF "TypeScript Docker runtime smoke test passed."
+permissions:
+  contents: read
