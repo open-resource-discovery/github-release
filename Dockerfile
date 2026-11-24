@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:26.13.1-alpine AS build
+FROM node:26.13.1-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS build
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ RUN rm -rf ./src \
            ./tsconfig.prod.json
 
 # Stage 2: Production
-FROM node:26.13.1-alpine
+FROM node:26.13.1-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5
 
 WORKDIR /app
 
