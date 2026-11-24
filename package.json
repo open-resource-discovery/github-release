@@ -20,8 +20,8 @@
     "prettier:ci": "npm run format:check",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
-    "format": "biome format --write . && oxfmt --no-error-on-unmatched-pattern '**/*.{md,yml,yaml,css,scss,html}'",
-    "format:check": "biome format . && oxfmt --check --no-error-on-unmatched-pattern '**/*.{md,yml,yaml,css,scss,html}'",
+    "format": "biome format --write . && oxfmt --no-error-on-unmatched-pattern '**/*.{md,yml,yaml,css,scss,html}' && node scripts/format-lockfile.mjs",
+    "format:check": "biome format . && oxfmt --check --no-error-on-unmatched-pattern '**/*.{md,yml,yaml,css,scss,html}' && node scripts/format-lockfile.mjs --check",
     "check:tooling": "npm run lint && npm run format:check"
   },
   "dependencies": {

@@ -24,7 +24,6 @@
     "**/resources/**",
     "**/test-data/**",
     "**/testdata/**",
-    "**/.github/**",
     "**/example/**",
     "**/test-files/**",
     "**/schemas/**",
