@@ -24,6 +24,7 @@ import {
   listTagsSortedByVersionDescending,
   pullTargetBranch,
   pushBranch,
+  redactGitDiagnostic,
   requireGit,
   revParse,
   tagExists,
@@ -112,6 +113,17 @@ describe("git", () => {
       } catch (error) {
         expect(String(error)).not.toContain(header);
       }
+    });
+
+    test("redacts Git URL rewrite credentials from diagnostics", () => {
+      const token = "synthetic-fixture-not-a-credential";
+      const key =
+        "url.https://x-access-token:" + token + "@example.invalid/.insteadOf";
+      const diagnostic = redactGitDiagnostic([key], key + "\n" + token);
+
+      expect(diagnostic).not.toContain(token);
+      expect(diagnostic).toContain("[REDACTED]");
+      expect(diagnostic).toContain("@example.invalid/.insteadOf");
     });
 
     test("returns trimmed stdout on success", () => {

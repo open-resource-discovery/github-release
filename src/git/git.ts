@@ -12,7 +12,7 @@ export type GitOptions = {
   env?: NodeJS.ProcessEnv;
 };
 
-function redactGitDiagnostic(args: string[], text: string): string {
+export function redactGitDiagnostic(args: string[], text: string): string {
   const sensitiveValues: string[] = [];
   for (let index = 0; index < args.length; index++) {
     if (/^http\..*\.extraheader$/i.test(args[index]) && args[index + 1]) {
@@ -20,6 +20,10 @@ function redactGitDiagnostic(args: string[], text: string): string {
     }
     const inlineHeader = args[index].match(/^http\..*\.extraheader=(.+)$/i);
     if (inlineHeader) sensitiveValues.push(inlineHeader[1]);
+    const token = args[index].match(
+      /^url\.https?:\/\/x-access-token:([^@]+)@.+\.insteadof$/i,
+    )?.[1];
+    if (token) sensitiveValues.push(token);
   }
   return sensitiveValues.reduce(
     (output, value) => output.split(value).join("[REDACTED]"),
@@ -39,7 +43,7 @@ export function execGit(
 
   if (result.error) {
     throw new Error(
-      `Failed to execute "git ${redactGitDiagnostic(args, args.join(" "))}": ${result.error.message}`,
+      `Failed to execute "git ${redactGitDiagnostic(args, args.join(" "))}": ${redactGitDiagnostic(args, result.error.message)}`,
     );
   }
 
