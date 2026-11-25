@@ -32,10 +32,24 @@ import {
 
 describe("git", () => {
   let repoDir: string;
+  let previousGlobalGitConfig: string | undefined;
+  let previousGitNoSystem: string | undefined;
 
   beforeEach(() => {
     repoDir = fs.mkdtempSync(path.join(os.tmpdir(), "git-test-"));
+    // Keep fixture commits and global configuration isolated from the user.
+    previousGlobalGitConfig = process.env.GIT_CONFIG_GLOBAL;
+    previousGitNoSystem = process.env.GIT_CONFIG_NOSYSTEM;
+    const isolatedGlobalGitConfig = path.join(
+      repoDir,
+      ".git",
+      "global.gitconfig",
+    );
+    process.env.GIT_CONFIG_GLOBAL = isolatedGlobalGitConfig;
+    process.env.GIT_CONFIG_NOSYSTEM = "1";
     requireGit(["init", "-b", "main"], { cwd: repoDir });
+    fs.writeFileSync(isolatedGlobalGitConfig, "", "utf8");
+    requireGit(["config", "commit.gpgsign", "false"], { cwd: repoDir });
     requireGit(["config", "user.name", "test-actor"], { cwd: repoDir });
     requireGit(
       ["config", "user.email", "test-actor@users.noreply.github.com"],
@@ -47,6 +61,16 @@ describe("git", () => {
   });
 
   afterEach(() => {
+    if (previousGlobalGitConfig === undefined) {
+      delete process.env.GIT_CONFIG_GLOBAL;
+    } else {
+      process.env.GIT_CONFIG_GLOBAL = previousGlobalGitConfig;
+    }
+    if (previousGitNoSystem === undefined) {
+      delete process.env.GIT_CONFIG_NOSYSTEM;
+    } else {
+      process.env.GIT_CONFIG_NOSYSTEM = previousGitNoSystem;
+    }
     fs.rmSync(repoDir, { recursive: true, force: true });
   });
 
@@ -57,6 +81,37 @@ describe("git", () => {
           cwd: repoDir,
         }),
       ).toThrow(/exit code/);
+    });
+
+    test("redacts authentication headers from failed command diagnostics", () => {
+      const header = "AUTHORIZATION: basic synthetic-fixture-not-a-credential";
+      const missingConfig = path.join(repoDir, "missing", "config");
+      expect(() =>
+        requireGit(
+          [
+            "config",
+            "--file",
+            missingConfig,
+            "http.example.invalid.extraheader",
+            header,
+          ],
+          { cwd: repoDir },
+        ),
+      ).toThrow(/\[REDACTED\]/);
+      try {
+        requireGit(
+          [
+            "config",
+            "--file",
+            missingConfig,
+            "http.example.invalid.extraheader",
+            header,
+          ],
+          { cwd: repoDir },
+        );
+      } catch (error) {
+        expect(String(error)).not.toContain(header);
+      }
     });
 
     test("returns trimmed stdout on success", () => {

@@ -9,7 +9,23 @@ export type GitCommandResult = {
 
 export type GitOptions = {
   cwd?: string;
+  env?: NodeJS.ProcessEnv;
 };
+
+function redactGitDiagnostic(args: string[], text: string): string {
+  const sensitiveValues: string[] = [];
+  for (let index = 0; index < args.length; index++) {
+    if (/^http\..*\.extraheader$/i.test(args[index]) && args[index + 1]) {
+      sensitiveValues.push(args[index + 1]);
+    }
+    const inlineHeader = args[index].match(/^http\..*\.extraheader=(.+)$/i);
+    if (inlineHeader) sensitiveValues.push(inlineHeader[1]);
+  }
+  return sensitiveValues.reduce(
+    (output, value) => output.split(value).join("[REDACTED]"),
+    text,
+  );
+}
 
 export function execGit(
   args: string[],
@@ -18,11 +34,12 @@ export function execGit(
   const result = spawnSync("git", args, {
     cwd: options.cwd,
     encoding: "utf8",
+    env: options.env ?? process.env,
   });
 
   if (result.error) {
     throw new Error(
-      `Failed to execute "git ${args.join(" ")}": ${result.error.message}`,
+      `Failed to execute "git ${redactGitDiagnostic(args, args.join(" "))}": ${result.error.message}`,
     );
   }
 
@@ -39,9 +56,9 @@ export function requireGit(args: string[], options: GitOptions = {}): string {
   if (result.exitCode !== 0) {
     throw new Error(
       [
-        `git ${args.join(" ")} failed with exit code ${result.exitCode}.`,
-        `stdout: ${result.stdout.trim()}`,
-        `stderr: ${result.stderr.trim()}`,
+        `git ${redactGitDiagnostic(args, args.join(" "))} failed with exit code ${result.exitCode}.`,
+        `stdout: ${redactGitDiagnostic(args, result.stdout.trim())}`,
+        `stderr: ${redactGitDiagnostic(args, result.stderr.trim())}`,
       ].join("\n"),
     );
   }
