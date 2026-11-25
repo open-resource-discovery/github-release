@@ -9,7 +9,6 @@ coverage/
 logs/
 *.log
 yarn-error.log
-.npmrc
 .DS_Store
 
 # GitHub Actions cache
