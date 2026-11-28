@@ -48,6 +48,14 @@
       ]
     },
     {
+      "description": "Keep the TypeScript API version compatible with Jest and ESLint.",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["package.json"],
+      "matchDepTypes": ["devDependencies"],
+      "matchDepNames": ["typescript"],
+      "allowedVersions": "<6.1"
+    },
+    {
       "groupName": "Linting Tools",
       "matchManagers": ["npm"],
       "matchPackageNames": ["eslint", "@sap/eslint-config", "prettier"]
