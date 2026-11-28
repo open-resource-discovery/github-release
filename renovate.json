@@ -41,11 +41,19 @@
       "matchPackageNames": [
         "typescript",
         "ts-jest",
-        "@tsconfig/node24",
+        "@tsconfig/node26",
         "tsx",
         "@types/jest",
         "@types/node"
       ]
+    },
+    {
+      "description": "Keep the TypeScript API version compatible with Jest and ESLint.",
+      "matchManagers": ["npm"],
+      "matchFileNames": ["package.json"],
+      "matchDepTypes": ["devDependencies"],
+      "matchDepNames": ["typescript"],
+      "allowedVersions": "<6.1"
     },
     {
       "groupName": "Linting Tools",
