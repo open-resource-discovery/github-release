@@ -139,6 +139,9 @@ describe("updateChangelog", () => {
     expect(result.changelogFileContent).toBeDefined();
     expect(result.changelogFileContent).not.toMatch(/^\n/);
     expect(result.changelogFileContent).toMatch(/^## \[unreleased\]/);
+    expect(result.changelogFileContent?.endsWith("- First release\n")).toBe(
+      true,
+    );
   });
 
   test("new version path: returns updated=true with new changelog content", async () => {
@@ -213,7 +216,51 @@ describe("updateChangelog", () => {
     expect(result.releaseBody).toContain(
       "This release includes the changes below.",
     );
+    expect(result.changelogFileContent).toMatch(
+      /\d{4}-\d{2}-\d{2}\n\nThis release includes the changes below\.\n\n## \[\[1\.0\.0\]/,
+    );
   });
+
+  test.each(["\n", "\r\n"])(
+    "keeps Markdown content and separates generated sections with one blank line (%j)",
+    async (newline) => {
+      const header = "# Changelog";
+      const description = [
+        "    indented code",
+        "",
+        "First line with a hard break  ",
+        "Second line",
+      ].join(newline);
+      const history = ["## [1.2.2] - 2025-12-01", "", "- Old entry"].join(
+        newline,
+      );
+      const sectionBreak = newline + newline;
+      const input = [header, "## [unreleased]", description, history].join(
+        sectionBreak,
+      );
+      fs.writeFileSync(
+        path.join(workspaceDir, "CHANGELOG.md"),
+        input + sectionBreak,
+      );
+
+      const result = await updateChangelog(
+        buildConfig(workspaceDir),
+        buildSetup(),
+        buildCollected(),
+        defaultGitPort(),
+      );
+
+      const versionHeading = result.changelogFileContent?.match(
+        /^## \[\[1\.2\.3\].* - \d{4}-\d{2}-\d{2}$/m,
+      )?.[0];
+      expect(versionHeading).toBeDefined();
+      expect(result.changelogFileContent).toBe(
+        [header, "## [unreleased]", versionHeading, description, history].join(
+          sectionBreak,
+        ) + newline,
+      );
+    },
+  );
 
   test("never renders the legacy '(commits)' heading or HTML tables", async () => {
     fs.writeFileSync(
