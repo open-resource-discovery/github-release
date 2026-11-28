@@ -40,7 +40,7 @@
   "engines": {
     "node": ">=26"
   },
-  "packageManager": "npm@11.21.3",
+  "packageManager": "npm@12.2.3",
   "devEngines": {
     "packageManager": {
       "name": "npm",
