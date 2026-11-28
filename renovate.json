@@ -41,7 +41,7 @@
       "matchPackageNames": [
         "typescript",
         "ts-jest",
-        "@tsconfig/node22",
+        "@tsconfig/node24",
         "tsx",
         "@types/jest",
         "@types/node"
