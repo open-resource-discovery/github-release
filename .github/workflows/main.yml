@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: "26.13.1"
       - name: Install pinned npm for dependency policy
-        run: npm install --global --ignore-scripts npm@11.21.3 --registry=https://registry.npmjs.org/
+        run: npm install --global --ignore-scripts npm@12.2.3 --registry=https://registry.npmjs.org/
 
       - name: Install NPM dependencies
         run: npm ci
@@ -43,7 +43,7 @@ jobs:
         with:
           node-version: "26.13.1"
       - name: Install pinned npm for dependency policy
-        run: npm install --global --ignore-scripts npm@11.21.3 --registry=https://registry.npmjs.org/
+        run: npm install --global --ignore-scripts npm@12.2.3 --registry=https://registry.npmjs.org/
 
       - name: Install NPM dependencies
         run: npm ci
@@ -62,7 +62,7 @@ jobs:
         with:
           node-version: "26.13.1"
       - name: Install pinned npm for dependency policy
-        run: npm install --global --ignore-scripts npm@11.21.3 --registry=https://registry.npmjs.org/
+        run: npm install --global --ignore-scripts npm@12.2.3 --registry=https://registry.npmjs.org/
 
       - name: Install NPM dependencies
         run: npm ci
